@@ -8,7 +8,7 @@ from result import Result
 
 class Database:
 	def __init__(self):
-		self.conn = sqlite3.connect("resources/master.db")
+		self.conn = sqlite3.connect("../resources/master.db")
 		self.cursor = self.conn.cursor()
 
 	# TODO: Change the login when signature verification is done
