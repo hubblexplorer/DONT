@@ -1,14 +1,27 @@
+#!/usr/bin/env python3
+
+#Because of files in different directories this mess has to be done
+import sys
+import os
+
+# Get the parent directory of the current script
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Add it to the system path if it's not already there
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+from result import Result 
 from datetime import timedelta
 import datetime
 import re
 import sqlite3
 import time
-from result import Result
 
 
 class Database:
 	def __init__(self):
-		self.conn = sqlite3.connect("../resources/master.db")
+		self.conn = sqlite3.connect("resources/master.db")
 		self.cursor = self.conn.cursor()
 
 	# TODO: Change the login when signature verification is done
