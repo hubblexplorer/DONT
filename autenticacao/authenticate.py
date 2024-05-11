@@ -1,58 +1,75 @@
 import hashlib
-import hmac
 import os
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric import padding
+import sys
+import rsa
+import time
+# Obter o caminho do diretório pai do diretório atual
+current_dir = os.path.dirname(__file__)
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+# Adicionar o diretório pai ao caminho de pesquisa de módulos do Python
+sys.path.append(parent_dir)
+from api.api_db import Database as api
 
-class Authenticate:
+class Authenticator:
+    """
+    def __init__(self):
+        self.usuarios = {}  # Armazenamento temporário dos usuários ativos
+    """
 
+    #Para fins logisticos, na realidade o utilizador é que tem as chaves
+    def register(self, username, role):
+        
+        # Cria uma chave pública/privada para o novo usuário
+        chave_publica, chave_privada = rsa.newkeys(512)
+        print("Chave privada: ",chave_privada)
+        api.create_user(current_user=1, new_pubkey=chave_publica, new_role=role, new_username=username)
+        print(f"Utilizador '{nome_usuario}' registado com sucesso.")
+        return True
     
-    def __init__(self, username, password):
-        self.username = username
-        self.password_hash = hashlib.sha256(password.encode()).hexdigest()
-
-    def authenticate(self, password):
-        return self.password_hash == hashlib.sha256(password.encode()).hexdigest()
-
-    def generate_keys(self):
-        self.private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
-        )
-        self.public_key = self.private_key.public_key()
-
-    def sign_message(self, message):
-        return self.private_key.sign(
-            message.encode(),
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
-        )
-
-    def verify_signature(self, signature, message, public_key):
+    def iniciar_autenticacao(self, nome_usuario):
+        # Verifica se o usuário está registrado
+        if nome_usuario not in self.usuarios:
+            print(f"Usuário '{nome_usuario}' não está registrado.")
+            return False
+        
+        # Gera um novo desafio aleatório
+        desafio = os.urandom(16)
+        # Hash do desafio para garantir integridade
+        desafio = hashlib.sha256(desafio).digest()
+        return desafio
+    
+    def autenticar(self, nome_usuario, desafio, assinatura):
+        # Verifica se o usuário está registrado
+        if nome_usuario not in self.usuarios:
+            print(f"Usuário '{nome_usuario}' não está registrado.")
+            return False
+        
+        # Recupera a chave pública do usuário
+        chave_publica = self.usuarios[nome_usuario]
+        
+        # Verifica a assinatura digital
         try:
-            public_key.verify(
-                signature,
-                message.encode(),
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
-                ),
-                hashes.SHA256()
-            )
+            rsa.verify(desafio, assinatura, chave_publica)
+            print(f"Usuário '{nome_usuario}' autenticado com sucesso.")
             return True
-        except Exception:
+        except:
+            print(f"Usuário '{nome_usuario}' falha na autenticação.")
             return False
 
-# Exemplo de uso:
-user = Authenticate("username", "password")
-user.generate_keys()
-message = "Mensagem a ser assinada"
-signature = user.sign_message(message)
-print("Assinatura:", signature)
-print("Assinatura válida?", user.verify_signature(signature, message, user.public_key))
+# Exemplo de uso
+if __name__ == "__main__":
+    autenticador = Authenticator()
+
+    # Registrar um novo usuário
+    nome_usuario = "Manuel"
+    role = "ADMIN"
+    autenticador.register(nome_usuario, role)
+    
+    # Iniciar o processo de autenticação e obter o desafio
+    desafio = autenticador.iniciar_autenticacao(nome_usuario)
+    
+    # Assinar o desafio com a chave privada do usuário (simulado)
+    assinatura = rsa.sign(desafio, None, 'SHA-256')
+    
+    # Autenticar o usuário com o desafio e a assinatura
+    autenticador.autenticar(nome_usuario, desafio, assinatura)
