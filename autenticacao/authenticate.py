@@ -15,41 +15,32 @@ class Authenticator:
     def __init__(self):
         self.usuarios = {}  # Armazenamento temporário dos usuários ativos
     """
-
     #Para fins logisticos, na realidade o utilizador é que tem as chaves
-    def register(self, username, role):
+    def register(self, username, role, current_user):
         
         # Cria uma chave pública/privada para o novo usuário
-        chave_publica, chave_privada = rsa.newkeys(512)
+        self.chave_publica, chave_privada = rsa.newkeys(512)
         print("Chave privada: ",chave_privada)
-        api.create_user(current_user=1, new_pubkey=chave_publica, new_role=role, new_username=username)
+        #api.create_user(current_user=current_user, new_pubkey=chave_publica, new_role=role, new_username=username)
         print(f"Utilizador '{nome_usuario}' registado com sucesso.")
-        return True
+        return self.chave_publica, chave_privada
     
-    def iniciar_autenticacao(self, nome_usuario):
-        # Verifica se o usuário está registrado
-        if nome_usuario not in self.usuarios:
-            print(f"Usuário '{nome_usuario}' não está registrado.")
-            return False
-        
+    def iniciar_autenticacao(self, nome):
         # Gera um novo desafio aleatório
         desafio = os.urandom(16)
         # Hash do desafio para garantir integridade
         desafio = hashlib.sha256(desafio).digest()
+
         return desafio
     
     def autenticar(self, nome_usuario, desafio, assinatura):
-        # Verifica se o usuário está registrado
-        if nome_usuario not in self.usuarios:
-            print(f"Usuário '{nome_usuario}' não está registrado.")
-            return False
-        
+
         # Recupera a chave pública do usuário
-        chave_publica = self.usuarios[nome_usuario]
-        
+        #chave_publica = self.usuarios["nome_usuario"]
+
         # Verifica a assinatura digital
         try:
-            rsa.verify(desafio, assinatura, chave_publica)
+            rsa.verify(desafio, assinatura, self.chave_publica)
             print(f"Usuário '{nome_usuario}' autenticado com sucesso.")
             return True
         except:
@@ -63,13 +54,15 @@ if __name__ == "__main__":
     # Registrar um novo usuário
     nome_usuario = "Manuel"
     role = "ADMIN"
-    autenticador.register(nome_usuario, role)
+    current_user = 1
+    
+    pubkey, privkey = autenticador.register(nome_usuario, role, current_user)
     
     # Iniciar o processo de autenticação e obter o desafio
     desafio = autenticador.iniciar_autenticacao(nome_usuario)
     
     # Assinar o desafio com a chave privada do usuário (simulado)
-    assinatura = rsa.sign(desafio, None, 'SHA-256')
+    assinatura = rsa.sign(desafio, privkey, 'SHA-256')
     
     # Autenticar o usuário com o desafio e a assinatura
     autenticador.autenticar(nome_usuario, desafio, assinatura)
