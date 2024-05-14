@@ -17,28 +17,27 @@ class VotingApp:
         self.setup_window()
 
         self.partidos = [
-            {"nome_completo": "Partido Nacional Republicano", "diminutivo": "PNR"},
-            {"nome_completo": "Partido Comunista dos Trabalhadores Portugueses", "diminutivo": "PCTP"},
-            {"nome_completo": "Partido Social Democrata", "diminutivo": "PSD"},
-            {"nome_completo": "Partido Socialista", "diminutivo": "PS"},
-            {"nome_completo": "Centro Democrático Social - Partido Popular", "diminutivo": "CDS-PP"},
-            {"nome_completo": "Bloco de Esquerda", "diminutivo": "BE"},
-            {"nome_completo": "Partido Comunista Português", "diminutivo": "PCP"},
-            {"nome_completo": "Partido Ecologista Os Verdes", "diminutivo": "PEV"},
-            {"nome_completo": "Pessoas-Animais-Natureza", "diminutivo": "PAN"},
-            {"nome_completo": "Iniciativa Liberal", "diminutivo": "IL"},
-            {"nome_completo": "Chega", "diminutivo": "CH"},
-            {"nome_completo": "LIVRE", "diminutivo": "L"},
-            {"nome_completo": "Aliança", "diminutivo": "A"},
-            {"nome_completo": "Partido da Terra", "diminutivo": "MPT"},
-            {"nome_completo": "Nós, Cidadãos!", "diminutivo": "NC"},
-            {"nome_completo": "R.I.R. - Reagir, Incluir, Reciclar", "diminutivo": "RIR"},
-            {"nome_completo": "Partido Renovador Democrático", "diminutivo": "PRD"},
-            {"nome_completo": "Partido dos Pintassilgos", "diminutivo": "PDB"},
-            {"nome_completo": "Voto em Branco", "diminutivo": " "}
+            {"nome_completo": "Partido Nacional Republicano", "diminutivo": "PNR", "estado": 0},
+            {"nome_completo": "Partido Comunista dos Trabalhadores Portugueses", "diminutivo": "PCTP", "estado": 0},
+            {"nome_completo": "Partido Social Democrata", "diminutivo": "PSD", "estado": 0},
+            {"nome_completo": "Partido Socialista", "diminutivo": "PS", "estado": 0},
+            {"nome_completo": "Centro Democrático Social - Partido Popular", "diminutivo": "CDS-PP", "estado": 0},
+            {"nome_completo": "Bloco de Esquerda", "diminutivo": "BE", "estado": 0},
+            {"nome_completo": "Partido Comunista Português", "diminutivo": "PCP", "estado": 0},
+            {"nome_completo": "Partido Ecologista Os Verdes", "diminutivo": "PEV", "estado": 0},
+            {"nome_completo": "Pessoas-Animais-Natureza", "diminutivo": "PAN", "estado": 0},
+            {"nome_completo": "Iniciativa Liberal", "diminutivo": "IL", "estado": 0},
+            {"nome_completo": "Chega", "diminutivo": "CH", "estado": 0},
+            {"nome_completo": "LIVRE", "diminutivo": "L", "estado": 0},
+            {"nome_completo": "Aliança", "diminutivo": "A", "estado": 0},
+            {"nome_completo": "Partido da Terra", "diminutivo": "MPT", "estado": 0},
+            {"nome_completo": "Nós, Cidadãos!", "diminutivo": "NC", "estado": 0},
+            {"nome_completo": "R.I.R. - Reagir, Incluir, Reciclar", "diminutivo": "RIR", "estado": 0},
+            {"nome_completo": "Partido Renovador Democrático", "diminutivo": "PRD", "estado": 0},
+            {"nome_completo": "Partido dos Pintassilgos", "diminutivo": "PDB", "estado": 0},
+            {"nome_completo": "Voto em Branco", "diminutivo": " ", "estado": 0}
             # Adicione mais partidos conforme necessário
         ]
-
 
         self.check_vars = {partido["diminutivo"]: tk.BooleanVar() for partido in self.partidos}
 
@@ -46,7 +45,7 @@ class VotingApp:
             self.add_party(party_frame=self.scrollable_frame, partido=partido, index=index)
 
         # Botão de submissão do voto, inicialmente oculto
-        self.submit_button = tk.Button(self.scrollable_frame, text="Submeter Voto", bg="#FFD700" ,command=self.submit_vote, font=self.custom_font)
+        self.submit_button = tk.Button(self.scrollable_frame, text="Submeter Voto", bg="#FFD700", command=self.submit_vote, font=self.custom_font)
         self.submit_button.grid(row=len(self.partidos) * 2, column=0, columnspan=3, pady=20, sticky="ew")
         self.submit_button.grid_remove() #talvez remova isto
 
@@ -82,9 +81,8 @@ class VotingApp:
         # Recalcula a posição central para a janela dentro do canvas
         self.canvas.coords(self.window, (event.width // 3, 0))
 
-
     def add_party(self, party_frame, partido, index):
-        frame = tk.Frame(party_frame, bg="#FFFFFF",pady = 7) #espaço entre linhas
+        frame = tk.Frame(party_frame, bg="#FFFFFF", pady=7)  # espaço entre linhas
         frame.grid(row=index * 2, column=0, sticky="ew")
         frame.columnconfigure(0, weight=1)
 
@@ -115,9 +113,22 @@ class VotingApp:
         if not selected_partido:
             messagebox.showerror("Erro", "Por favor, selecione um partido antes de votar.")
         else:
+            for partido in self.partidos:
+                if partido["diminutivo"] == selected_partido:
+                    partido["estado"] = 1
+                    break
             messagebox.showinfo("Voto", f"Voto registrado para: {selected_partido}")
+            self.get_boletim()
+            self.master.destroy()  # Fechar a janela após a votação
 
-if __name__ == "__main__":
+    def get_boletim(self):
+        print(self.partidos)
+        return self.partidos
+
+def start_app():
     root = tk.Tk()
     app = VotingApp(root)
     root.mainloop()
+
+if __name__ == "__main__":
+    start_app()
