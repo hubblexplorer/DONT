@@ -39,12 +39,11 @@ class Database:
 		raise NotImplementedError("Login needs signature implementation done")
 	
 
-	def pubkey(self, username: str, n_contribuinte: int) -> Result:
-		#self.cursor.execute("SELECT * FROM users WHERE username = ? AND n_contribut = ?", (username, n_contribuinte))
+	def pubkey(self, username: str) -> Result:
 		self.cursor.execute("SELECT pubkey FROM users WHERE username = ?", (username,))
 		aux = self.cursor.fetchone()
 		if aux == None:
-			return Result(error=True, message= "Username or numero de contribuite not found")
+			return Result(error=True, message= "Username  not found")
 		return Result(value=aux[0])
 	
 
@@ -641,4 +640,4 @@ def test_db():
 	print("All tests passed!")
 	
 
-#aaatest_db()
+#test_db()

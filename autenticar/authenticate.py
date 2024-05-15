@@ -36,7 +36,7 @@ class Authenticator:
     def autenticar(self, nome_utilizador, desafio, assinatura):
         api_instance = api()
         # Recupera a chave pública do usuário
-        chave_publica = api_instance.pubkey(username=nome_utilizador, n_contribuinte=123123123)
+        chave_publica = api_instance.pubkey(username=nome_utilizador)
 
         # Verifica a assinatura digital 
         try:
