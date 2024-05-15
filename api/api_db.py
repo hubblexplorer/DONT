@@ -398,7 +398,7 @@ class Database:
 	
 
 	
-	def vote(self, current_user: int, Id_election: int, vote: any, hmac: str) -> Result:
+	def vote(self, current_user: int, Id_election: int, vote: any, hmac: str, key: str) -> Result:
 		"""
     	Registers a vote in the specified election.
 
@@ -446,7 +446,7 @@ class Database:
 		#checks are done
 		try: 
 			self.cursor.execute("BEGIN TRANSACTION")
-			self.cursor.execute("INSERT INTO Votes (Vote,Hmac,ID_election) VALUES (?, ?, ?)", (vote, hmac, Id_election))
+			self.cursor.execute("INSERT INTO Votes (Vote,Hmac,ID_election,Key) VALUES (?, ?, ?,?)", (vote, hmac, Id_election, key))
 			self.cursor.execute("INSERT INTO Election_voters (Id_voter, Id_election) VALUES (?, ?)", (current_user, Id_election))
 			return self.log(current_user, "VOTE", "User " + str(current_user) + " voted in election " + str(Id_election))
 		except sqlite3.Error as e:
