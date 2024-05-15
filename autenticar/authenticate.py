@@ -14,7 +14,7 @@ class Authenticator:
     """
     def __init__(self):
         self.usuarios = {}  # Armazenamento temporário dos usuários ativos
-    """
+    
     #Para fins logisticos, na realidade o utilizador é que tem as chaves
     def register(self, username, role, current_user):
         
@@ -24,7 +24,7 @@ class Authenticator:
         #api.create_user(current_user=current_user, new_pubkey=chave_publica, new_role=role, new_username=username)
         print(f"Utilizador '{nome_usuario}' registado com sucesso.")
         return self.chave_publica, chave_privada
-    
+    """
     def iniciar_autenticacao(self, nome):
         # Gera um novo desafio aleatório
         desafio = os.urandom(16)
@@ -33,18 +33,18 @@ class Authenticator:
 
         return desafio
     
-    def autenticar(self, nome_usuario, desafio, assinatura):
-
+    def autenticar(self, nome_utilizador, desafio, assinatura):
+        api_instance = api()
         # Recupera a chave pública do usuário
-        #chave_publica = self.usuarios["nome_usuario"]
+        chave_publica = api_instance.pubkey(username=nome_utilizador, n_contribuinte=123123123)
 
-        # Verifica a assinatura digital
+        # Verifica a assinatura digital 
         try:
-            rsa.verify(desafio, assinatura, self.chave_publica)
-            print(f"Usuário '{nome_usuario}' autenticado com sucesso.")
+            rsa.verify(desafio, assinatura, chave_publica)
+            print(f"Usuário '{nome_utilizador}' autenticado com sucesso.") 
             return True
         except:
-            print(f"Usuário '{nome_usuario}' falha na autenticação.")
+            print(f"Usuário '{nome_utilizador}' falha na autenticação.")
             return False
 
 # Exemplo de uso

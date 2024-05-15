@@ -38,6 +38,16 @@ class Database:
 		self.cursor.execute("SELECT * FROM users WHERE username = ?", (username))
 		raise NotImplementedError("Login needs signature implementation done")
 	
+
+	def pubkey(self, username: str, n_contribuinte: int) -> Result:
+		#self.cursor.execute("SELECT * FROM users WHERE username = ? AND n_contribut = ?", (username, n_contribuinte))
+		self.cursor.execute("SELECT pubkey FROM users WHERE username = ?", (username,))
+		aux = self.cursor.fetchone()
+		if aux == None:
+			return Result(error=True, message= "Username or numero de contribuite not found")
+		return Result(value=aux[0])
+	
+
 	def clear_tables_except_admin(self) -> Result:
 		"""
 		Clears all tables in the database except the admin user
@@ -483,7 +493,7 @@ class Database:
 			print("Error occurred:", e)
 			return Result(error=True, message="SQL Error occurred while voting")
 
-	def get_logs(self, current_user: int) -> Result:
+	def get_logs(self, current_user: int) -> Result: 
 		aux = self.get_role(current_user)
 		if aux.is_err():
 			return aux
@@ -631,4 +641,4 @@ def test_db():
 	print("All tests passed!")
 	
 
-test_db()
+#aaatest_db()
