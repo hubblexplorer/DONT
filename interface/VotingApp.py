@@ -109,26 +109,31 @@ class VotingApp:
                 var.set(False)
 
     def submit_vote(self):
-        selected_partido = next((k for k, v in self.check_vars.items() if v.get()), None)
-        if not selected_partido:
+        self.selected_partido = next((k for k, v in self.check_vars.items() if v.get()), None)
+        if not self.selected_partido:
             messagebox.showerror("Erro", "Por favor, selecione um partido antes de votar.")
         else:
             for partido in self.partidos:
-                if partido["diminutivo"] == selected_partido:
+                if partido["diminutivo"] == self.selected_partido:
+                    self.selected_partido = partido["nome_completo"]
                     partido["estado"] = 1
                     break
-            messagebox.showinfo("Voto", f"Voto registrado para: {selected_partido}")
-            self.get_boletim()
+            messagebox.showinfo("Voto", f"Voto registrado para: {self.selected_partido}")
             self.master.destroy()  # Fechar a janela após a votação
 
     def get_boletim(self):
-        print(self.partidos)
         return self.partidos
+        
+    def get_vote(self):
+        return self.selected_partido
 
 def start_app():
     root = tk.Tk()
     app = VotingApp(root)
     root.mainloop()
+    #boletim = app.get_boletim()
+    vot = app.get_vote()
+    return vot
 
 if __name__ == "__main__":
     start_app()
