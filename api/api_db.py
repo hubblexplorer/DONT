@@ -42,6 +42,7 @@ class Database:
 	def pubkey(self, username: str) -> Result:
 		self.cursor.execute("SELECT pubkey FROM users WHERE username = ?", (username,))
 		aux = self.cursor.fetchone()
+		
 		if aux == None:
 			return Result(error=True, message= "Username  not found")
 		return Result(value=aux[0])

@@ -1,7 +1,11 @@
 import hashlib
 import os
 import sys
-import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.exceptions import InvalidSignature
 import time
 # Obter o caminho do diretório pai do diretório atual
 current_dir = os.path.dirname(__file__)
@@ -28,41 +32,61 @@ class Authenticator:
     def iniciar_autenticacao(self, nome):
         # Gera um novo desafio aleatório
         desafio = os.urandom(16)
-        # Hash do desafio para garantir integridade
-        desafio = hashlib.sha256(desafio).digest()
-
+        # Hash do desafio para exibição
+        desafio = hashlib.sha256(desafio).hexdigest()
         return desafio
-    
+
+    @staticmethod
+    def verify_signature(data, signature, public_key):
+        print(data)
+        print(signature)
+        # Carregar a chave pública
+        loaded_public_key = serialization.load_pem_public_key(
+            public_key.encode()
+        )
+        # Verificar a assinatura
+        try:
+            loaded_public_key.verify(
+                signature,
+                data,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+            return True  # Assinatura válida
+        except InvalidSignature:
+            return False  # Assinatura inválida
+
     def autenticar(self, nome_utilizador, desafio, assinatura):
         api_instance = api()
         # Recupera a chave pública do usuário
-        chave_publica = api_instance.pubkey(username=nome_utilizador)
+        chave_publica_str = api_instance.pubkey(username=nome_utilizador).value
+
+        # Verificar se 'assinatura' já está em bytes, caso contrário, converter de hexadecimal para bytes
+        if isinstance(assinatura, str):
+            assinatura = bytes.fromhex(assinatura)
+
+        # Verificar se 'desafio' já está em bytes, caso contrário, converter de hexadecimal para bytes
+        if isinstance(desafio, str):
+            desafio = bytes.fromhex(desafio)
 
         # Verifica a assinatura digital 
         try:
-            rsa.verify(desafio, assinatura, chave_publica)
-            print(f"Usuário '{nome_utilizador}' autenticado com sucesso.") 
-            return True
-        except:
-            print(f"Usuário '{nome_utilizador}' falha na autenticação.")
+            resultado = Authenticator.verify_signature(desafio, assinatura, chave_publica_str)
+            
+            if resultado:
+                print(f"Utilizador '{nome_utilizador}' autenticado com sucesso.") 
+                return True
+            else:
+                print(f"Utilizador '{nome_utilizador}' falha na autenticação.")
+                return False
+        except Exception as e:
+            print(f"Erro ao verificar a assinatura para o utilizador '{nome_utilizador}'. ", e)
             return False
+        
 
-# Exemplo de uso
-if __name__ == "__main__":
-    autenticador = Authenticator()
 
-    # Registrar um novo usuário
-    nome_usuario = "Manuel"
-    role = "ADMIN"
-    current_user = 1
+
     
-    pubkey, privkey = autenticador.register(nome_usuario, role, current_user)
-    
-    # Iniciar o processo de autenticação e obter o desafio
-    desafio = autenticador.iniciar_autenticacao(nome_usuario)
-    
-    # Assinar o desafio com a chave privada do usuário (simulado)
-    assinatura = rsa.sign(desafio, privkey, 'SHA-256')
-    
-    # Autenticar o usuário com o desafio e a assinatura
-    autenticador.autenticar(nome_usuario, desafio, assinatura)
