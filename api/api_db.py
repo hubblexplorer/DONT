@@ -457,6 +457,7 @@ class Database:
 		try: 
 			self.cursor.execute("BEGIN TRANSACTION")
 			self.cursor.execute("INSERT INTO Votes (Vote,Hmac,ID_election,Key) VALUES (?, ?, ?,?)", (vote, hmac, Id_election, key))
+			self.cursor.execute("INSERT INTO Votes (Vote,Hmac,ID_election,Key) VALUES (?, ?, ?,?)", (vote, hmac, Id_election, key))
 			self.cursor.execute("INSERT INTO Election_voters (Id_voter, Id_election) VALUES (?, ?)", (current_user, Id_election))
 			return self.log(current_user, "VOTE", "User " + str(current_user) + " voted in election " + str(Id_election))
 		except sqlite3.Error as e:
@@ -486,6 +487,7 @@ class Database:
 			return Result(error=True, message="User " + str(current_user) + " is not in the commision, this will be reported")
 
 		try:
+			self.cursor.execute("SELECT Vote, Hmac, key FROM Votes WHERE ID_election = ?", (Id_election,))
 			self.cursor.execute("SELECT Vote, Hmac, key FROM Votes WHERE ID_election = ?", (Id_election,))
 			votes = self.cursor.fetchall()
 			return Result(error=False, value=votes)
@@ -579,13 +581,18 @@ class DatabaseTest(unittest.TestCase):
 		self.db.create_user(1, "user7", "pubkey7", "VOTER")
 		self.db.create_user(1, "user8", "pubkey8", "VOTER")
 		self.db.create_user(1, "user9", "pubkey9", "VOTER")
+		self.db.create_user(1, "user7", "pubkey7", "VOTER")
+		self.db.create_user(1, "user8", "pubkey8", "VOTER")
+		self.db.create_user(1, "user9", "pubkey9", "VOTER")
 
+		self.assertTrue(self.db.vote(3, 2, "candidate1", "hmac1",'8248278').unwrap())
 		self.assertTrue(self.db.vote(3, 2, "candidate1", "hmac1",'8248278').unwrap())
 
 
 	
 	def test_vote_again(self):
 		try: 
+			self.db.vote(3, 2, "candidate1", "hmac1", '8248278').unwrap()
 			self.db.vote(3, 2, "candidate1", "hmac1", '8248278').unwrap()
 		except:
 			print("Expected error")
