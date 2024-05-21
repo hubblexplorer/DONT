@@ -7,6 +7,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.exceptions import InvalidSignature
 import time
+
 # Obter o caminho do diretório pai do diretório atual
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
@@ -59,8 +60,9 @@ class Authenticator:
 
     def autenticar(self, nome_utilizador, desafio, assinatura):
         api_instance = api()
+        user_id = api_instance.get_id("users", "name", nome_utilizador).value
         # Recupera a chave pública do usuário
-        chave_publica_str = api_instance.pubkey(username=nome_utilizador).value
+        chave_publica_str = api_instance.get_public_key(current_user=user_id).value
 
         # Verificar se 'assinatura' já está em bytes, caso contrário, converter de hexadecimal para bytes
         if isinstance(assinatura, str):
