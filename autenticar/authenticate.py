@@ -38,8 +38,6 @@ class Authenticator:
 
     @staticmethod
     def verify_signature(data, signature, public_key):
-        print(data)
-        print(signature)
         # Carregar a chave pública
         loaded_public_key = serialization.load_pem_public_key(
             public_key.encode()
