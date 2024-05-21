@@ -1,5 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
+
+# Importar a classe AdminDashboard do novo arquivo
+from .admin_dashboard import AdminDashboard
 
 class AdminInterface(tk.Toplevel):
     def __init__(self, master):
@@ -17,7 +21,6 @@ class AdminInterface(tk.Toplevel):
 
         self.setup_voting_button = tk.Button(self, text="Criar Votação", command=self.setup_voting)
         self.setup_voting_button.pack(pady=10)
-
 
     def register_user(self):
         # Função para registrar novos usuários
@@ -46,9 +49,7 @@ class UserInterface(tk.Toplevel):
 
         self.create_commission_button = tk.Button(self, text="Iniciar Comissão Eleitoral", command=self.create_commission)
         self.create_commission_button.pack(pady=10)
-        #fechar
-        #contar
-        
+
         self.verify_results_button = tk.Button(self, text="Verificar Resultados em Grupo", command=self.verify_results)
         self.verify_results_button.pack(pady=10)
 
@@ -65,3 +66,18 @@ class UserInterface(tk.Toplevel):
         messagebox.showinfo("Verificar Resultados", "Verificação de resultados em grupo iniciada.")
 
 
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Interface Principal")
+
+    def open_admin_dashboard():
+        new_window = tk.Toplevel(root)
+        app = AdminDashboard(new_window)
+
+    main_frame = ttk.Frame(root)
+    main_frame.pack(padx=10, pady=10, fill='x', expand=True)
+
+    admin_button = ttk.Button(main_frame, text="Abrir Dashboard de Admin", command=open_admin_dashboard)
+    admin_button.pack(fill='x', pady=5)
+
+    root.mainloop()
