@@ -213,6 +213,27 @@ class Database:
 			return Result(error=True, message="SQL Error occurred while adding candidate")
 		
 
+	def get_candidates_by_election(self, election_id: int) -> Result:
+		"""
+		Retrieves a list of all candidates in the system.
+
+		:return: Result object containing a list of candidate names if found,
+			 otherwise an error message indicating no candidates were found.
+		"""
+		try:
+			self.cursor.execute("SELECT id_candidate FROM elections_candidates where id_election = ?", (election_id,))
+			aux = self.cursor.fetchall()
+			self.cursor.execute("SELECT name FROM candidates WHERE id IN (?)", (aux,))
+			aux = self.cursor.fetchall()
+			if aux == None:
+				return Result(error=True, message="No candidates found")
+			return Result(value=aux)
+		except sqlite3.Error as e:
+			print("Error occurred:", e)
+
+
+		
+
 	def get_public_key(self, current_user: int) -> Result:
 		"""
 		Retrieves the public key of a user.

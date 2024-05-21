@@ -1,9 +1,29 @@
 import tkinter as tk
 from tkinter import messagebox
+import os
+import sys
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
+
+# Add it to the system path if it's not already there
+queue = [parent_dir]
+
+while queue:
+    dir = queue.pop(0)
+    for entry in os.scandir(dir):
+        sys.path.append(entry.path)
+        if entry.is_dir():
+            queue.append(entry.path)
+
+print(sys.path)
+
+
 from interface.autenticacao import SignatureAuthenticationApp
 from api.api_db import Database as api
 from interface.users import UserInterface, AdminInterface
 from interface.VotingApp import VotingApp
+
+
 
 class VotingSystemApp(tk.Tk):
     def __init__(self):
