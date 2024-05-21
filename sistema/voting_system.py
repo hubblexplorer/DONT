@@ -27,6 +27,7 @@ while queue:
         sys.path.append(entry.path)
         if entry.is_dir():
             queue.append(entry.path)
+
         
 from VotingApp import start_app
 from api_db import Database
