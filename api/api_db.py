@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
 
 #Because of files in different directories this mess has to be done
+import secrets
 import sys
 import os
+
+
 
 # Get the parent directory of the current script
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 # Add it to the system path if it's not already there
+queue = []
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
+    if os.path.isdir(parent_dir):
+        queue.append(parent_dir)
+
+while queue:
+    dir = queue.pop(0)
+    for entry in os.scandir(dir):
+        sys.path.append(entry.path)
+        if entry.is_dir():
+            queue.append(entry.path)
 
 from result import Result 
 from datetime import timedelta
@@ -17,7 +30,7 @@ import datetime
 import re
 import sqlite3
 import time
-
+from shamir import Shamir
 
 class Database:
 	def __init__(self):
@@ -38,14 +51,6 @@ class Database:
 		self.cursor.execute("SELECT * FROM users WHERE username = ?", (username))
 		raise NotImplementedError("Login needs signature implementation done")
 	
-
-	def pubkey(self, username: str) -> Result:
-		self.cursor.execute("SELECT pubkey FROM users WHERE name = ?", (username,))
-		aux = self.cursor.fetchone()
-		
-		if aux == None:
-			return Result(error=True, message= "Username  not found")
-		return Result(value=aux[0])
 	
 
 	def clear_tables_except_admin(self) -> Result:
@@ -206,95 +211,33 @@ class Database:
 			print("Error occurred:", e)
 			self.conn.rollback()
 			return Result(error=True, message="SQL Error occurred while adding candidate")
+		
 
-
-	def create_commision(self, current_user: int, shamir: any, num_members: int) -> Result:
+	def get_public_key(self, current_user: int) -> Result:
 		"""
-   	 	Creates a new commission in the system.
+		Retrieves the public key of a user.
 
-		:param current_user: The ID of the current user (admin).
-		:param shamir: The secret sharing scheme for the commission.
-		:param num_members: The number of members in the commission.
-		:return: Result object indicating success or failure of the operation.
+		:param current_user: The ID of the user whose public key is to be retrieved.
+		:return: Result object containing the public key if found,
+			 otherwise an error message indicating the public key was not found.
 		"""
-		aux = self.get_role(current_user)
-		if aux.is_err():
-			return aux
-		
-		if aux.unwrap() not in ["ADMIN"]: #Only admins should create commisions
-			return Result(error=True, message="Only admins can create commisions")
-		
-		if self.check_if_exists("commissions", "secret_sharing_scheme", shamir):
-			return Result(error=True, message="Secret sharing scheme already exists")
-		
-		if num_members < 3:
-			return Result(error=True, message="Minimum number of members is 3")
-		
 		try:
-			self.conn.execute("BEGIN TRANSACTION")
-			self.cursor.execute("INSERT INTO commissions (secret_sharing_scheme, num_members) VALUES (?, ?)", (shamir, num_members))
-			return self.log(current_user, "CREATE_COMMISION", "User " + str(current_user) + " created commision with " + str(num_members) + " members")
+			self.cursor.execute("SELECT pubkey FROM users WHERE id = ?", (current_user,))
+			aux = self.cursor.fetchone()
+			if aux == None:
+				return Result(error=True, message="Public key not found")
+			return Result(value=aux[0])
 		except sqlite3.Error as e:
-			# Rollback the transaction if an error occurs
 			print("Error occurred:", e)
-			self.conn.rollback()
-			return Result(error=True, message="SQL Error occurred while creating commision")
+
+
 	
-	def add_user_to_commision(self, current_user: int, Id_commission: int, id_user: int) -> Result:
-		"""
-		Adds a user to a commission in the system.
-
-		:param current_user: The ID of the current user (admin).
-		:param Id_commission: The ID of the commission.
-		:param id_user: The ID of the user to be added to the commission.
-		:return: Result object indicating success or failure of the operation.
-		"""
-		aux = self.get_role(current_user)
-		if aux.is_err():
-			return aux
-		if aux.unwrap() not in ["ADMIN"]: #Only admins should add users to commisions
-			return Result(error=True, message="Only admins can add users to commisions")
-		
-
-		aux = self.get_role(id_user)
-		if aux.is_err():
-			return aux
-		
-		if aux.unwrap() not in ["USER"]: #Only users should add be added to commissions
-			return Result(error=True, message="User " + str(id_user) + " is not a user")
-		
-		self.cursor.execute("SELECT Num_members FROM commissions WHERE Id = ?", (str(Id_commission)))
-		aux =  self.cursor.fetchone()
-		self.cursor.execute("SELECT Count(*) FROM Commision_members WHERE Id_commission = ?", (str(Id_commission)))
-		aux2 = self.cursor.fetchone()
-		if int(aux[0]) <= int(aux2[0]):
-			return Result(error=True, message="Commision " + str(Id_commission) + " is full")
-		
-
-		#Check if already in commission
-		aux = self.cursor.execute("SELECT Count(*) FROM Commision_members WHERE id_user = ? AND Id_commission = ?", (str(id_user), str(Id_commission)))
-		
-		if aux.fetchone()[0] > 0:
-			return Result(error=True, message="User " + str(id_user) + " is already in commision " + str(Id_commission))
-		
-
-		try:
-			self.conn.execute("BEGIN TRANSACTION")
-			self.cursor.execute("INSERT INTO Commision_members (id_user, Id_commission) VALUES (?, ?)", (id_user, Id_commission))
-			return self.log(current_user, "ADD_USER_TO_COMMISION", "User " + str(id_user) + " added to commision " + str(Id_commission))
-		
-		except sqlite3.Error as e:
-			# Rollback the transaction if an error occurs
-			print("Error occurred:", e)
-			self.conn.rollback()
-			return Result(error=True, message="SQL Error occurred while adding user to commision")
-	
-	def create_election(self, current_user: int, Id_commission: int, list_candidates: list, name: str, start_date: str, end_date: str) -> Result:
+	def create_election(self, current_user: int, list_user_Commission: list, list_candidates: list, name: str, start_date: str, end_date: str) -> Result:
 		"""
 		Creates a new election.
 
 		:param current_user: The ID of the current user creating the election.
-		:param Id_commission: The ID of the commission associated with the election.
+		:param list_user_Commission: A list of user IDs participating in the election.
 		:param list_candidates: A list of candidate names participating in the election.
 		:param name: The name of the election.
 		:param start_date: The start date of the election in DD-MM-YYYY format.
@@ -305,13 +248,10 @@ class Database:
 		if aux.is_err():
 			return aux
 
-		if aux.unwrap() not in ["USER"]:
-			return Result(error=True, message="Only USER should create elections")
+		if aux.unwrap() not in ["ADMIN"]:
+			return Result(error=True, message="Only ADMIN should create elections")
 		
-
 		#Check for duplicates 
-		if not self.check_if_exists("commissions", "Id", Id_commission):
-			return Result(error=True, message="Commision " + str(Id_commission) + " does not exist")
 		if self.check_if_exists("elections","name", name):
 			return Result(error=True, message="Election " + name + " already exists")
 		if start_date > end_date:
@@ -343,11 +283,45 @@ class Database:
 				return Result(error=True, message="Candidate " + candidate + " does not exist")
 			
 			list_candidates_ids.append(self.get_id("candidates", "name", candidate).unwrap())
+
+		for user in list_user_Commission:
+			if not self.check_if_exists("users", "id", user):
+				if self.get_role(user).unwrap() != "USER":
+					return Result(error=True, message="User " + str(user) + " is not an admin")
 		
+		#Get number of commission
+		try:
+			self.cursor.execute("SELECT COUNT(*) FROM Commissions")
+			number_commission = self.cursor.fetchone()[0]
+
+		except sqlite3.Error as e:
+			# Rollback the transaction if an error occurs
+			print("Error occurred:", e)
+			self.conn.rollback()
+			return Result(error=True, message="SQL Error occurred while creating election")
+
+		number_commission = int(number_commission) + 1
+
+		secret_key = secrets.token_bytes(32)
+
+		shamir_secrets = Shamir(len(list_user_Commission), secret_key)
+
+		secret_sharing_scheme = shamir_secrets.secret_sharing_scheme
+
+		
+
+		encypted_keys = []
+		for pos,key in enumerate(list_user_Commission):
+			key = self.get_public_key(key).unwrap()
+			encypted_keys.append(encrypt_message(key, str(secret_sharing_scheme[pos])+"|DIV|" + str(shamir_secrets.prime)))
+					
 		try:
 			self.cursor.execute("BEGIN TRANSACTION")
-			self.cursor.execute("INSERT INTO elections (Name, Is_Active, start_date, end_date, Id_commission) VALUES (?, ?, ?, ?, ?)", (name, False, start_date, end_date, Id_commission))
+			self.cursor.execute("INSERT INTO elections (Name, Is_Active, start_date, end_date, Id_commission) VALUES (?, ?, ?, ?, ?)", (name, False, start_date, end_date, number_commission))
 			id_election = self.cursor.lastrowid
+			self.cursor.execute("INSERT INTO Commissions (ID, Id_election, num_members) VALUES (?, ?,?)", (number_commission, id_election, len(list_user_Commission)))
+			for pos,user in enumerate(list_user_Commission):
+				self.cursor.execute("INSERT INTO Commission_members (Id_commission, Id_user, SHAMIR_SECRET_ENCRYPTED) VALUES (?, ?, ?)", (number_commission, user, encypted_keys[pos]))
 			for candidate in list_candidates_ids:
 				self.cursor.execute("INSERT INTO election_candidates (Id_election, Id_candidates) VALUES (?, ?)", (id_election, candidate))
 			return self.log(current_user, "CREATE_ELECTION", "User " + str(current_user) + " created election " + name)
@@ -481,10 +455,10 @@ class Database:
 			self.log(current_user, "ERROR: PERMISSION_DENIED", "User " + str(current_user) + " tried to get votes for election " + str(Id_election))
 			return Result(error=True, message="Only USER should get votes, this will be reported")
 
-		#Check if user is in the commision
-		if not self.check_if_exists("commision_members", "Id_user", current_user):
+		#Check if user is in the Commission
+		if not self.check_if_exists("Commission_members", "Id_user", current_user):
 			self.log(current_user, "ERROR: PERMISSION_DENIED", "User " + str(current_user) + " tried to get votes for election " + str(Id_election))
-			return Result(error=True, message="User " + str(current_user) + " is not in the commision, this will be reported")
+			return Result(error=True, message="User " + str(current_user) + " is not in the Commission, this will be reported")
 
 		try:
 			self.cursor.execute("SELECT Vote, Hmac, key FROM Votes WHERE ID_election = ?", (Id_election,))
@@ -496,6 +470,12 @@ class Database:
 			return Result(error=True, message="SQL Error occurred while voting")
 
 	def get_logs(self, current_user: int) -> Result: 
+		"""
+		Retrieves the logs of the system.
+
+		:param current_user: The ID of the user requesting the logs.
+		:return: Result object containing the logs if successful, otherwise an error message.
+		"""
 		aux = self.get_role(current_user)
 		if aux.is_err():
 			return aux
@@ -510,6 +490,33 @@ class Database:
 		except sqlite3.Error as e:
 			print("Error occurred:", e)
 			return Result(error=True, message="SQL Error occurred while getting logs")
+		
+	def get_commission_members(self, current_user: int, Commission_id: int) -> Result:
+		"""
+		Retrives the users of a Commission
+
+		:param Commission_id: The ID of the Commission
+		:return: Result object containing the users if successful, otherwise an error message.
+		"""
+		if not self.check_if_exists("Commission_members", "Id_commission", Commission_id):
+			return Result(error=True, message="Commission " + str(Commission_id) + " does not exist")
+		
+		aux = self.get_role(current_user)
+		if aux.is_err():
+			return aux
+		if aux.unwrap() not in ["ADMIN", "USER"]:
+			return Result(error=True, message="Only ADMIN and USER should get Commission members")
+		
+		try:
+			self.cursor.execute("SELECT * FROM Commission_members WHERE Id_commission = ?", (Commission_id,))
+			members = self.cursor.fetchall()
+			return Result(error=False, value=members)
+		except sqlite3.Error as e:
+			print("Error occurred:", e)
+			return Result(error=True, message="SQL Error occurred while getting Commission members")
+		
+		
+
 
 
 
@@ -519,7 +526,7 @@ class Database:
 
 
 import unittest
-
+from keys_rsa import encrypt_message, generate_rsa_keypair
 class DatabaseTest(unittest.TestCase):
 
 	def setUp(self):
@@ -535,17 +542,19 @@ class DatabaseTest(unittest.TestCase):
 
 
 	def test_create_user(self):
-		self.assertTrue(self.db.create_user(1, "user2", "pubkey2", "USER").unwrap())
+		private_key, public_key = generate_rsa_keypair()
+		#save private keys to keys directory
+
+		new_file = open("keys/private_key_user2.pem", "w")
+		new_file.write(private_key)
+		new_file.close()
+
+		self.assertTrue(self.db.create_user(1, "user2", public_key, "USER").unwrap())
 
 	def test_add_candidate(self):
 		self.assertTrue(self.db.add_candidate(1, "candidate1").unwrap())
 		self.assertTrue(self.db.add_candidate(1, "candidate2").unwrap())
 
-	def test_create_commision(self):
-		self.assertTrue(self.db.create_commision(1, "shamir", 3).unwrap())
-
-	def test_add_user_to_commision(self):
-		self.assertTrue(self.db.add_user_to_commision(1, 1, 2).unwrap())
 
 	
 	def test_error_create_user(self):
@@ -561,7 +570,17 @@ class DatabaseTest(unittest.TestCase):
 
 
 	def test_create_election(self):
-		self.assertTrue(self.db.create_election(2, 1, ["candidate1", "candidate2"], "election1", "01-01-2025", "02-01-2025").unwrap())
+		for i in range(1, 3):
+			private_key, public_key = generate_rsa_keypair()
+			file_name = "keys/private_key_user" + str(i+2) + ".pem"
+			new_file = open(file_name, "w")
+			new_file.write(private_key)
+			new_file.close()
+			self.assertTrue(self.db.create_user(1, "user" + str(i+2), public_key, "USER").unwrap())
+		
+		list_of_users = [2, 3, 4]
+
+		self.assertTrue(self.db.create_election(1, list_of_users, ["candidate1", "candidate2"], "election1", "01-01-2025", "02-01-2025").unwrap())
 
 	def test_vote(self):
 
@@ -577,37 +596,40 @@ class DatabaseTest(unittest.TestCase):
 		self.db.cursor.execute("INSERT INTO Election_Candidates (Id_Election, Id_Candidates) VALUES (?, ?)", (2, 1))
 		self.db.conn.commit()
 
-		self.db.create_user(1, "user3", "pubkey1", "VOTER")
-		self.db.create_user(1, "user7", "pubkey7", "VOTER")
-		self.db.create_user(1, "user8", "pubkey8", "VOTER")
-		self.db.create_user(1, "user9", "pubkey9", "VOTER")
-		self.db.create_user(1, "user7", "pubkey7", "VOTER")
-		self.db.create_user(1, "user8", "pubkey8", "VOTER")
-		self.db.create_user(1, "user9", "pubkey9", "VOTER")
+		for i in range(1, 7):
+			private_key, public_key = generate_rsa_keypair()
+			file_name = "keys/private_key_user" + str(i+4) + ".pem"
+			new_file = open(file_name, "w")
+			new_file.write(private_key)
+			new_file.close()
+			self.assertTrue(self.db.create_user(1, "user" + str(i+4), public_key, "VOTER").unwrap())
 
-		self.assertTrue(self.db.vote(3, 2, "candidate1", "hmac1",'8248278').unwrap())
-		self.assertTrue(self.db.vote(3, 2, "candidate1", "hmac1",'8248278').unwrap())
+
+		self.assertTrue(self.db.vote(5, 2, "candidate1", "hmac1",'8248278').unwrap())
+		self.assertTrue(self.db.vote(6, 2, "candidate1", "hmac1",'8248278').unwrap())
 
 
 	
 	def test_vote_again(self):
 		try: 
-			self.db.vote(3, 2, "candidate1", "hmac1", '8248278').unwrap()
-			self.db.vote(3, 2, "candidate1", "hmac1", '8248278').unwrap()
+			self.db.vote(5, 2, "candidate1", "hmac1", '8248278').unwrap()
+			self.db.vote(6, 2, "candidate1", "hmac1", '8248278').unwrap()
 		except:
 			print("Expected error")
 			self.assertTrue(True)
 
 	def test_get_votes(self):
 
-		try:
-			aux = self.db.get_votes(2, 2).unwrap()
-			for vote in aux:
-				print(vote)
-			self.assertTrue(True)
-		except:
-			print("Error occurred")
+		
+		aux = self.db.get_votes(2, 2)
+		if aux.is_err():
+			print(aux.error)
 			self.assertTrue(False)
+		
+		for vote in aux.unwrap():
+			print(vote)
+		self.assertTrue(True)
+			
 	
 
 	def test_get_logs(self):
@@ -618,9 +640,6 @@ class DatabaseTest(unittest.TestCase):
 		except:
 			print("Error occurred")
 			self.assertTrue(False)
-
-
-
 
 	def tearDown(self):
 		self.db.conn.close()
@@ -636,11 +655,10 @@ def test_db():
 	
 	dbtest = DatabaseTest()
 	dbtest.setUp()
+	
 	dbtest.test_get_role()
 	dbtest.test_create_user()
 	dbtest.test_add_candidate()
-	dbtest.test_create_commision()
-	dbtest.test_add_user_to_commision()
 	dbtest.test_error_create_user()
 	dbtest.test_create_election()
 	dbtest.test_vote()

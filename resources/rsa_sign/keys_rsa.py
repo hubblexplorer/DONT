@@ -7,7 +7,7 @@ def generate_rsa_keypair():
     # Gerar uma chave privada RSA
     private_key = rsa.generate_private_key(
         public_exponent=65537,
-        key_size=2048,
+        key_size=4096,
         backend=default_backend()
     )
 
@@ -33,7 +33,44 @@ def generate_rsa_keypair():
 
     return private_key_str, public_key_str
 
+def encrypt_message(public_key_str:str, message:str):
+    # Load the public key
+    public_key = serialization.load_pem_public_key(
+        public_key_str.encode(),
+        backend=default_backend()
+    )
 
+    # Encrypt the message
+    ciphertext = public_key.encrypt(
+        message.encode(),
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+
+    return ciphertext
+
+def decrypt_message(private_key_str, ciphertext):
+    # Load the private key
+    private_key = serialization.load_pem_private_key(
+        private_key_str.encode(),
+        password=None,
+        backend=default_backend()
+    )
+
+    # Decrypt the message
+    plaintext = private_key.decrypt(
+        ciphertext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+
+    return plaintext.decode('utf-8')
 
 
 def sign_message(private_key_str, message):
@@ -56,6 +93,7 @@ def sign_message(private_key_str, message):
 
     return signature
 
+"""
 # Exemplo de uso:
 private_key_str, public_key_str = generate_rsa_keypair()
 
@@ -65,3 +103,13 @@ print(private_key_str)
 print("\nChave pública RSA:")
 print(public_key_str)
 
+
+message = "Atum"
+ciphertext = encrypt_message(public_key_str, message)
+print("\nMensagem encriptada:")
+print(ciphertext)
+
+decrypted_message = decrypt_message(private_key_str, ciphertext)
+print("\nMensagem decifrada:")
+print(decrypted_message)
+"""
