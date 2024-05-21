@@ -15,11 +15,9 @@ class AdminInterface(tk.Toplevel):
         self.register_voter_button = tk.Button(self, text="Registrar Novo Eleitor", command=self.register_voter)
         self.register_voter_button.pack(pady=10)
 
-        self.setup_voting_button = tk.Button(self, text="Configurar Votação", command=self.setup_voting)
+        self.setup_voting_button = tk.Button(self, text="Criar Votação", command=self.setup_voting)
         self.setup_voting_button.pack(pady=10)
 
-        self.authorize_voters_button = tk.Button(self, text="Autorizar Eleitores", command=self.authorize_voters)
-        self.authorize_voters_button.pack(pady=10)
 
     def register_user(self):
         # Função para registrar novos usuários
@@ -31,7 +29,7 @@ class AdminInterface(tk.Toplevel):
 
     def setup_voting(self):
         # Função para configurar a votação
-        messagebox.showinfo("Configurar Votação", "Configuração da votação iniciada.")
+        messagebox.showinfo("Criar Votação", "Configuração da votação iniciada.")
 
     def authorize_voters(self):
         # Função para autorizar eleitores a votar
@@ -46,12 +44,11 @@ class UserInterface(tk.Toplevel):
 
         tk.Label(self, text="Bem-vindo à Interface de Usuário", font=("Helvetica", 16)).pack(pady=20)
 
-        self.create_commission_button = tk.Button(self, text="Criar Comissão Eleitoral", command=self.create_commission)
+        self.create_commission_button = tk.Button(self, text="Iniciar Comissão Eleitoral", command=self.create_commission)
         self.create_commission_button.pack(pady=10)
-
-        self.setup_voting_button = tk.Button(self, text="Configurar Votação em Grupo", command=self.setup_voting)
-        self.setup_voting_button.pack(pady=10)
-
+        #fechar
+        #contar
+        
         self.verify_results_button = tk.Button(self, text="Verificar Resultados em Grupo", command=self.verify_results)
         self.verify_results_button.pack(pady=10)
 
