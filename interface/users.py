@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
+from shamir_interface import ShamirInterface
 
 # Importar a classe AdminDashboard do novo arquivo
 from .admin_dashboard import AdminDashboard
@@ -40,30 +41,41 @@ class AdminInterface(tk.Toplevel):
 
 
 class UserInterface(tk.Toplevel):
-    def __init__(self, master):
+    def __init__(self, master, user_id):
         super().__init__(master)
         self.title("User Interface")
         self.geometry("600x400")
+        self.user_id = user_id
 
         tk.Label(self, text="Bem-vindo à Interface de Usuário", font=("Helvetica", 16)).pack(pady=20)
 
-        self.create_commission_button = tk.Button(self, text="Iniciar Comissão Eleitoral", command=self.create_commission)
-        self.create_commission_button.pack(pady=10)
+        self.init_button = tk.Button(self, text="Iniciar Eleição", command=self.init_eleicao)
+        self.init_button.pack(pady=10)
 
-        self.verify_results_button = tk.Button(self, text="Verificar Resultados em Grupo", command=self.verify_results)
+        self.close_button = tk.Button(self, text="Verificar Resultados", command=self.close_results)
+        self.close_button.pack(pady=10)
+
+        self.verify_results_button = tk.Button(self, text="Verificar Resultados", command=self.verify_results)
         self.verify_results_button.pack(pady=10)
 
-    def create_commission(self):
+    def init_eleicao(self):
         # Função para criar comissões eleitorais
         messagebox.showinfo("Criar Comissão", "Criação de comissão eleitoral iniciada.")
+        # Abre a interface de Shamir para iniciar a eleição
+        shamir_interface = ShamirInterface(self, "Iniciar Votação", self.user_id)
+        shamir_interface.grab_set()
 
-    def setup_voting(self):
-        # Função para configurar votação em grupo
-        messagebox.showinfo("Configurar Votação", "Configuração de votação em grupo iniciada.")
+    def close_results(self):
+        # Função para verificar resultados em grupo
+        messagebox.showinfo("Verificar Resultados", "Verificação de resultados em grupo iniciada.")
+        # Abre a interface de Shamir para verificar resultados
+        shamir_interface = ShamirInterface(self, "Fechar Votação", self.user_id)
+        shamir_interface.grab_set()
 
     def verify_results(self):
         # Função para verificar resultados em grupo
         messagebox.showinfo("Verificar Resultados", "Verificação de resultados em grupo iniciada.")
+
 
 
 if __name__ == "__main__":

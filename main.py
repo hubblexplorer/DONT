@@ -73,7 +73,7 @@ class VotingSystemApp(tk.Tk):
             if user_role == "ADMIN":
                 self.show_admin_interface()
             elif user_role == "USER":
-                self.show_user_interface()
+                UserInterface(self, user_id)
             else:
                 self.show_voter_interface()
 
@@ -96,4 +96,3 @@ class VotingSystemApp(tk.Tk):
 if __name__ == "__main__":
     app = VotingSystemApp()
     app.mainloop()
-
