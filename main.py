@@ -18,9 +18,11 @@ while queue:
 print(sys.path)
 
 
+# Importações dos módulos necessários
 from interface.autenticacao import SignatureAuthenticationApp
 from api.api_db import Database as api
 from interface.users import UserInterface, AdminInterface
+from sistema.voting_system import VotingSystem
 from interface.VotingApp import VotingApp
 
 
@@ -38,6 +40,7 @@ class VotingSystemApp(tk.Tk):
         self.auth_button.pack(pady=20)
 
         self.authenticated = False  # Flag para verificar se o usuário está autenticado
+        self.db = api()
 
     def authenticate_user(self):
         self.auth_button.config(state="disabled")  # Desabilita o botão de autenticação
@@ -66,14 +69,14 @@ class VotingSystemApp(tk.Tk):
                 self.auth_button.pack_forget()  # Esconde o botão de autenticação após o login bem-sucedido
 
             api_instance = api()
-            user_id = api_instance.get_id("users", "name", user).value
-            user_role = api_instance.get_role(user_id).value
+            self.user_id = api_instance.get_id("users", "name", user).value
+            user_role = api_instance.get_role(self.user_id).value
 
 
             if user_role == "ADMIN":
                 self.show_admin_interface()
             elif user_role == "USER":
-                UserInterface(self, user_id)
+                UserInterface(self, self.user_id)
             else:
                 self.show_voter_interface()
 
@@ -86,12 +89,13 @@ class VotingSystemApp(tk.Tk):
         user_interface.grab_set()
 
     def show_voter_interface(self):
-        voter_window = tk.Toplevel(self)
-        voter_app = VotingApp(voter_window) 
-        # Torna a janela modal
-        voter_window.transient(self)
-        voter_window.grab_set()
-        self.wait_window(voter_window)
+        voting_window = tk.Toplevel(self)
+        app = VotingApp(voting_window)
+        self.wait_window(voting_window)
+        vote = app.get_vote()
+        election_id = self.db.get_elections_global
+        system = VotingSystem(self.db)
+        system.store_vote(self.user_id,1,vote,"")
 
 if __name__ == "__main__":
     app = VotingSystemApp()

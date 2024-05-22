@@ -90,7 +90,7 @@ class VotingSystem:
 
     def store_vote(self, current_user, election, vote, password):
         """Cifra e armazena um voto na base de dados."""
-        encrypted_vote = self.encrypt_vote(vote, password)
+        encrypted_vote = self.encrypt_vote(vote)
         hmac_result = self.generate_hmac(vote)
         
         result =  self.db.vote(current_user,election,encrypted_vote,hmac_result,password)
@@ -116,6 +116,7 @@ class VotingSystem:
                 else:                
                     votes.append(vote)
             return votes
+        
     def encrypt_key(self, password:str):
         salt = secrets.token_bytes(16)
         key = self.derive_key(password, salt)
