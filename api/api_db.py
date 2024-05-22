@@ -351,7 +351,7 @@ class Database:
 			self.conn.rollback()
 			return Result(error=True, message="SQL Error occurred while creating election")
 		
-	def get_elections(self, current_user: int) -> Result:
+	def get_elections_by_user(self, current_user: int) -> Result:
 		"""
 		Gets elections with commission information
 
@@ -379,7 +379,19 @@ class Database:
 			print("Error occurred:", e)
 			self.conn.rollback()
 			return Result(error=True, message="SQL Error occurred while retrieving elections")
-		
+	
+	def get_elections_global(self) -> Result:
+		try:
+			self.cursor.execute("SELECT id FROM elections")
+			elections = self.cursor.fetchall()
+			if not elections:
+				return Result(error=True, message="No elections found for the user")
+			return Result(value=elections)
+		except sqlite3.Error as e:
+			# Rollback the transaction if an error occurs
+			print("Error occurred:", e)
+			self.conn.rollback()
+			return Result(error=True, message="SQL Error occurred while retrieving elections")
 
 
 	def change_election_active_status(self, current_user: int, Id_election: int, status: bool) -> Result:
