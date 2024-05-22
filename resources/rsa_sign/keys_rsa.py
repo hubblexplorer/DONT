@@ -93,7 +93,7 @@ def sign_message(private_key_str, message):
 
     return signature
 
-"""
+
 # Exemplo de uso:
 private_key_str, public_key_str = generate_rsa_keypair()
 
@@ -112,4 +112,3 @@ print(ciphertext)
 decrypted_message = decrypt_message(private_key_str, ciphertext)
 print("\nMensagem decifrada:")
 print(decrypted_message)
-"""

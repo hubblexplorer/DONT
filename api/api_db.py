@@ -12,16 +12,16 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # Add it to the system path if it's not already there
 queue = []
 if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-    if os.path.isdir(parent_dir):
-        queue.append(parent_dir)
+	sys.path.append(parent_dir)
+	if os.path.isdir(parent_dir):
+		queue.append(parent_dir)
 
 while queue:
-    dir = queue.pop(0)
-    for entry in os.scandir(dir):
-        sys.path.append(entry.path)
-        if entry.is_dir():
-            queue.append(entry.path)
+	dir = queue.pop(0)
+	for entry in os.scandir(dir):
+		sys.path.append(entry.path)
+		if entry.is_dir():
+			queue.append(entry.path)
 
 from result import Result 
 from datetime import timedelta
@@ -364,28 +364,33 @@ class Database:
 		if aux.unwrap() not in ["USER", "ADMIN"]:
 			return Result(error=True, message="Only USER and ADMIN should get elections")
 		try:
-			self.cursor.execute("SELECT * FROM elections")
-			election = self.cursor.fetchone()
-			if election is None:
-				return Result(error=True, message="No elections found")
-			return Result(value=election)
+			self.cursor.execute("""
+				SELECT e.*
+				FROM elections e
+				JOIN commission_members cm ON e.id_commission = cm.id_commission
+				WHERE cm.id_user = ?
+			""", (current_user,))
+			elections = self.cursor.fetchall()
+			if not elections:
+				return Result(error=True, message="No elections found for the user")
+			return Result(value=elections)
 		except sqlite3.Error as e:
 			# Rollback the transaction if an error occurs
 			print("Error occurred:", e)
 			self.conn.rollback()
-			return Result(error=True, message="SQL Error occurred while creating election")
+			return Result(error=True, message="SQL Error occurred while retrieving elections")
 		
 
 
 	def change_election_active_status(self, current_user: int, Id_election: int, status: bool) -> Result:
 		"""
-    	Changes the active status of an election.
+		Changes the active status of an election.
 
-    	:param current_user: The ID of the current user attempting to change the status.
-    	:param Id_election: The ID of the election to change the status of.
-    	:param status: The new active status to set for the election.
-    	:return: Result object indicating success or failure of the operation.
-    	"""
+		:param current_user: The ID of the current user attempting to change the status.
+		:param Id_election: The ID of the election to change the status of.
+		:param status: The new active status to set for the election.
+		:return: Result object indicating success or failure of the operation.
+		"""
 		aux = self.get_role(current_user)
 		if aux.is_err():
 			return aux
@@ -425,14 +430,14 @@ class Database:
 			
 	def vote(self, current_user: int, Id_election: int, vote: any, hmac: str, key: str) -> Result:
 		"""
-    	Registers a vote in the specified election.
+		Registers a vote in the specified election.
 
-    	:param current_user: The ID of the user attempting to vote.
-    	:param Id_election: The ID of the election in which the user is voting.
-    	:param vote: The vote cast by the user.
-    	:param hmac: HMAC of the vote for security verification.
-    	:return: Result object indicating success or failure of the operation.
-    	"""
+		:param current_user: The ID of the user attempting to vote.
+		:param Id_election: The ID of the election in which the user is voting.
+		:param vote: The vote cast by the user.
+		:param hmac: HMAC of the vote for security verification.
+		:return: Result object indicating success or failure of the operation.
+		"""
 		aux = self.get_role(current_user)
 		if aux.is_err():
 			return aux
@@ -482,12 +487,12 @@ class Database:
 
 	def get_votes(self, current_user: int, Id_election: int) -> Result:
 		"""
-    	Retrieves the votes cast in the specified election.
+		Retrieves the votes cast in the specified election.
 
-    	:param current_user: The ID of the user requesting the votes.
-    	:param Id_election: The ID of the election for which votes are being requested.
-    	:return: Result object containing the votes if successful, otherwise an error message.
-    	"""
+		:param current_user: The ID of the user requesting the votes.
+		:param Id_election: The ID of the election for which votes are being requested.
+		:return: Result object containing the votes if successful, otherwise an error message.
+		"""
 
 		aux = self.get_role(current_user)
 		if aux.is_err():
@@ -682,6 +687,20 @@ class DatabaseTest(unittest.TestCase):
 			print("Error occurred")
 			self.assertTrue(False)
 
+
+	def test_get_elections(self):
+		# Test get_elections for a user in commission 1
+		result = self.db.get_elections(3)
+		if result.is_err():
+			print(result.message)
+			self.assertTrue(False)
+		elections = result.unwrap()
+		for election in elections:
+			print(election)
+		self.assertTrue(True)
+
+	
+
 	def tearDown(self):
 		self.db.conn.close()
 
@@ -706,8 +725,9 @@ def test_db():
 	dbtest.test_vote_again()
 	dbtest.test_get_votes()
 	dbtest.test_get_logs()
+	dbtest.test_get_elections()
 	dbtest.tearDown()
 	print("All tests passed!")
 	
 
-#test_db()
+test_db()

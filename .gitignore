@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 .vscode/
 master_copy.db
+resources/master.db-Users-1-PubKey.bin
+
