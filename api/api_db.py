@@ -6,7 +6,6 @@ import sys
 import os
 
 
-
 # Get the parent directory of the current script
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -352,6 +351,31 @@ class Database:
 			self.conn.rollback()
 			return Result(error=True, message="SQL Error occurred while creating election")
 		
+	def get_elections(self, current_user: int) -> Result:
+		"""
+		Gets elections with commission information
+
+		:param current_user: The ID of the current user.
+		:return: Result object containing the election information.
+		"""
+		aux = self.get_role(current_user)
+		if aux.is_err():
+			return aux
+		if aux.unwrap() not in ["USER", "ADMIN"]:
+			return Result(error=True, message="Only USER and ADMIN should get elections")
+		try:
+			self.cursor.execute("SELECT * FROM elections")
+			election = self.cursor.fetchone()
+			if election is None:
+				return Result(error=True, message="No elections found")
+			return Result(value=election)
+		except sqlite3.Error as e:
+			# Rollback the transaction if an error occurs
+			print("Error occurred:", e)
+			self.conn.rollback()
+			return Result(error=True, message="SQL Error occurred while creating election")
+		
+
 
 	def change_election_active_status(self, current_user: int, Id_election: int, status: bool) -> Result:
 		"""
@@ -398,11 +422,7 @@ class Database:
 			print("Error occurred:", e)
 			self.conn.rollback()
 			return Result(error=True, message="SQL Error occurred while creating election")
-		
-
-	
-
-	
+			
 	def vote(self, current_user: int, Id_election: int, vote: any, hmac: str, key: str) -> Result:
 		"""
     	Registers a vote in the specified election.
