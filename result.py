@@ -1,15 +1,15 @@
 class Result:
     """
-    A simple result class representing either a successful result (value) or an error.
+    Representa uma classe simples para representar um resultado bem-sucedido (valor) ou um erro.
     """
 
     def __init__(self, value=None, error=False, message=None):
         """
-        Initializes a new Result object.
+        Inicializa uma nova objeto de Resultado.
 
-        :param value: The value of the result (if successful).
-        :param error: The error code (if an error occurred).
-        :param message: The error message (if an error occurred).
+        :param value: O valor do resultado (se bem-sucedido).
+        :param error: Código de erro (se ocorreu um erro).
+        :param message: A messagem de erro (se ocorreu um erro).
         """
         self.value = value
         self.error = error
@@ -17,26 +17,26 @@ class Result:
 
     def is_ok(self):
         """
-        Checks if the result is a successful one.
+        Verifica se o resultado representa uma operação bem-sucedida.
 
-        :return: True if the result is successful, False otherwise.
+        :return: True se o resultado for bem-sucedido, False caso contrário.
         """
         return not self.error 
 
     def is_err(self):
         """
-        Checks if the result represents an error.
+        Verifica se o resultado representa um erro.
 
-        :return: True if the result is an error, False otherwise.
+        :return: True se o resultado for um erro, False caso contrário.
         """
-        return self.error 
+        return self.error
 
     def unwrap(self):
         """
-        Retrieves the value of the result if it's successful, otherwise raises an error.
+        Retorna o valor do resultado se ele for bem-sucedido, ou levanta uma exceção de ValueError.
 
-        :return: The value of the result if successful.
-        :raises ValueError: If the result represents an error.
+        :return: O valor do resultado se ele for bem-sucedido.
+        :raises ValueError: Se o resultado represente um erro.
         """
         if self.error:
             raise ValueError(self.message)
