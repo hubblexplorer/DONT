@@ -373,7 +373,7 @@ class Database:
 	
 	def get_elections_global(self) -> Result:
 		try:
-			self.cursor.execute("SELECT id FROM elections")
+			self.cursor.execute("SELECT id FROM elections WHERE Is_Active = 1")
 			elections = self.cursor.fetchall()
 			if not elections:
 				return Result(error=True, message="Sem eleições criadas")
@@ -729,4 +729,4 @@ def test_db():
 	print("Todos os testes efectuados com sucesso")
 	
 
-test_db()
+#test_db()
