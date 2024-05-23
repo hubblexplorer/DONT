@@ -414,7 +414,7 @@ class Database:
 		current_date = time.strftime("DD-MM-YYYY")
 
 		try:
-			aux = self.cursor.execute("SELECT start_date, end_date FROM elections WHERE Id = ?", (Id_election))
+			aux = self.cursor.execute("SELECT start_date, end_date FROM elections WHERE Id = ?", (Id_election,))
 		except sqlite3.Error as e:
 			print("Error occurred:", e)
 			return Result(error=True, message="SQL Error occurred while getting election start and end date")
@@ -432,7 +432,7 @@ class Database:
   
 		try: 
 			self.cursor.execute("BEGIN TRANSACTION")
-			self.cursor.execute("UPDATE elections SET Is_Active = ? WHERE Id = ?", (status, Id_election))
+			self.cursor.execute("UPDATE elections SET Is_Active = ? WHERE Id = ?", (status, Id_election,))
 			return self.log(current_user, "CHANGE_ELECTION_STATUS", "User " + str(current_user) + " changed election status of election " + str(Id_election))
 		except sqlite3.Error as e:
 			# Rollback the transaction if an error occurs
@@ -584,7 +584,7 @@ class Database:
 
 
 import unittest
-from keys_rsa import encrypt_message, generate_rsa_keypair
+from resources.rsa_sign.keys_rsa import encrypt_message, generate_rsa_keypair
 class DatabaseTest(unittest.TestCase):
 
 	def setUp(self):
@@ -741,5 +741,4 @@ def test_db():
 	dbtest.tearDown()
 	print("All tests passed!")
 	
-
-test_db()
+#test_db()

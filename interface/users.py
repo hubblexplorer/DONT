@@ -52,29 +52,25 @@ class UserInterface(tk.Toplevel):
         self.init_button = tk.Button(self, text="Iniciar Eleição", command=self.init_eleicao)
         self.init_button.pack(pady=10)
 
-        self.close_button = tk.Button(self, text="Verificar Resultados", command=self.close_results)
+        self.close_button = tk.Button(self, text="Fechar Eleição", command=self.close_results)
         self.close_button.pack(pady=10)
 
         self.verify_results_button = tk.Button(self, text="Verificar Resultados", command=self.verify_results)
         self.verify_results_button.pack(pady=10)
 
     def init_eleicao(self):
-        # Função para criar comissões eleitorais
-        messagebox.showinfo("Criar Comissão", "Criação de comissão eleitoral iniciada.")
         # Abre a interface de Shamir para iniciar a eleição
         shamir_interface = ShamirInterface(self, "Iniciar Votação", self.user_id)
         shamir_interface.grab_set()
 
     def close_results(self):
-        # Função para verificar resultados em grupo
-        messagebox.showinfo("Verificar Resultados", "Verificação de resultados em grupo iniciada.")
         # Abre a interface de Shamir para verificar resultados
         shamir_interface = ShamirInterface(self, "Fechar Votação", self.user_id)
         shamir_interface.grab_set()
 
     def verify_results(self):
-        # Função para verificar resultados em grupo
-        messagebox.showinfo("Verificar Resultados", "Verificação de resultados em grupo iniciada.")
+        shamir_interface = ShamirInterface(self, "Verificar Resultados", self.user_id)
+        shamir_interface.grab_set()
 
 
 

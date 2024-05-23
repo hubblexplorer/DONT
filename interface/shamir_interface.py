@@ -19,6 +19,7 @@ sys.path.append(parent_dir)
 
 from api.api_db import Database as api
 from shamir import Shamir
+from sistema.voting_system import VotingSystem
 from resources.rsa_sign.keys_rsa import encrypt_message, decrypt_message
 
 class ShamirInterface(tk.Toplevel):
@@ -30,6 +31,7 @@ class ShamirInterface(tk.Toplevel):
         self.user_id = user_id  # Pegue o usuário autenticado do master
         self.action = action
         self.api_instance = api()
+        self.success = False  # Atributo para armazenar o resultado da verificação
 
         tk.Label(self, text=f"{action} - Shamir's Secret Sharing", font=("Helvetica", 16)).pack(pady=20)
 
@@ -82,6 +84,8 @@ class ShamirInterface(tk.Toplevel):
                     self.start_voting()
                 elif self.action == "Fechar Votação":
                     self.close_voting()
+                elif self.action == "Verificar Resultados":
+                    self.verify_results()
             else:
                 messagebox.showerror("Erro", "Falha na verificação das chaves. Tente novamente.")
 
@@ -103,19 +107,102 @@ class ShamirInterface(tk.Toplevel):
             
             # Verifique se o segredo foi reconstruído corretamente
             if secret:
+                self.success = True
                 return True
             else:
+                self.success = False
                 return False
         except Exception as e:
             print(f"Erro ao verificar as chaves: {e}")
+            self.success = False
             return False
 
     def start_voting(self):
         # Lógica para iniciar a votação
-        self.api_instance.change_election_active_status(current_user=self.user_id, Id_election=self.selected_election_id, status=True)
-        messagebox.showinfo("Iniciar Votação", "Votação iniciada com sucesso.")
+        iniciar = self.api_instance.change_election_active_status(current_user=int(self.user_id), Id_election=int(self.selected_election_id), status=True)
+        if iniciar:
+            messagebox.showinfo("Iniciar Votação", "Votação iniciada com sucesso.")
+            self.success = True
+            self.destroy()  # Fechar a janela atual após iniciar a votação
+        else:
+            messagebox.showerror("Erro", "Não foi possível iniciar a votação.")
 
     def close_voting(self):
         # Lógica para fechar a votação
-        self.api_instance.change_election_active_status(current_user=self.user_id, Id_election=self.selected_election_id, status=False)
-        messagebox.showinfo("Fechar Votação", "Votação fechada com sucesso.")
+        fechar = self.api_instance.change_election_active_status(current_user=self.user_id, Id_election=self.selected_election_id, status=False)
+        if fechar:
+            messagebox.showinfo("Fechar Votação", "Votação fechada com sucesso.")
+            self.success = True
+            self.destroy()  # Fechar a janela atual após fechar a votação
+        else:
+            messagebox.showerror("Erro", "Não foi possível fechar a votação.")
+
+    def verify_results(self):
+        # Lógica para verificar os resultados
+        try:
+            result = self.count_votes(self.user_id, self.selected_election_id)
+            if result:
+                self.show_results(result)
+            else:
+                messagebox.showinfo("Resultados", "Não há votos registrados para esta eleição.")
+            self.success = True
+            self.destroy()  # Fechar a janela atual após verificar os resultados
+        except Exception as e:
+            print(f"Erro ao verificar os resultados: {e}")
+            self.success = False
+
+    def show_results(self, result):
+        # Cria uma nova janela para mostrar os resultados
+        results_window = tk.Toplevel(self)
+        results_window.title("Resultados da Eleição")
+        
+        # Cria uma tabela para exibir os resultados
+        table = ttk.Treeview(results_window, columns=('Partido', 'Votos'), show='headings')
+        table.heading('Partido', text='Partido')
+        table.heading('Votos', text='Votos')
+
+        # Preenche a tabela com os resultados
+        for partido, votos in result:
+            table.insert('', tk.END, values=(partido, votos))
+
+        table.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+
+    def count_votes(self, current_user, Id_election):
+        """Conta os votos válidos para cada partido e ordena por ordem de mais votos."""
+        result = self.api_instance.get_votes(current_user, Id_election)
+        if result.is_err():
+            print("Erro ao obter votos:", result.message)
+        else:
+            votes = result.unwrap()
+            
+            # Dicionario para contar os votos por partido
+            vote_counts = {}
+
+            for vote_record in votes:
+                partido = vote_record[0]  # O valor do voto representa o partido
+                provided_hmac = vote_record[1]  # O HMAC fornecido
+                key_str = vote_record[2]  # A chave de integridade armazenada
+                
+                try:
+                    key = bytes.fromhex(key_str)  # Converte a chave de integridade de hexadecimal para bytes
+                except ValueError as e:
+                    print(f"Erro ao converter chave de integridade para bytes: {e}")
+                    continue  # Pula este registro de voto
+
+                # Cria uma instancia temporaia do sistema de votacao com a chave correta
+                temp_voting_system = VotingSystem()
+                temp_voting_system.integrity_key = key
+
+                # Verifica a integridade do voto
+                if temp_voting_system.verify_hmac(partido, provided_hmac):
+                    if partido in vote_counts:
+                        vote_counts[partido] += 1
+                    else:
+                        vote_counts[partido] = 1
+
+            # Ordena os partidos por numero de votos em ordem decrescente
+            sorted_vote_counts = sorted(vote_counts.items(), key=lambda item: item[1], reverse=True)
+
+            print("Contagem de votos por partido (ordenada):", sorted_vote_counts)
+            return sorted_vote_counts
