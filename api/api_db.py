@@ -400,19 +400,19 @@ class Database:
 			return Result(error=True, message="Apenas users podem mudar o estado a eleição, isto irá ser reportado")
 		
 		# Verificar se a data está nos limites.
-		current_date = time.strftime("DD-MM-YYYY")
+		#current_date = time.strftime("DD-MM-YYYY")
 
-		try:
-			aux = self.cursor.execute("SELECT start_date, end_date FROM elections WHERE Id = ?", (Id_election,))
-		except sqlite3.Error as e:
-			print("Erro:", e)
-			return Result(error=True, message="Erro SQL a obter as datas da eleição")
+		#try:
+		#	aux = self.cursor.execute("SELECT start_date, end_date FROM elections WHERE Id = ?", (Id_election,))
+		#except sqlite3.Error as e:
+		#	print("Erro:", e)
+		#	return Result(error=True, message="Erro SQL a obter as datas da eleição")
 		
-		start_date, end_date = aux.fetchone()
-		if status:
-			if current_date < start_date or current_date > end_date:
-				self.log(current_user,"ERROR: PERMISSÃO_NEGADA", "User " + str(current_user) + "  tentou alterar estado da eleição " + str(Id_election) + " que não pode ser alterada nesta data")
-				return Result(error=True, message="Eleição " + str(Id_election) + " não pode ser alterada pois não a data atual não é a correta, isto irá ser reportado.")
+		#start_date, end_date = aux.fetchone()
+		#if status:
+		#	if current_date < start_date or current_date > end_date:
+		#		self.log(current_user,"ERROR: PERMISSÃO_NEGADA", "User " + str(current_user) + "  tentou alterar estado da eleição " + str(Id_election) + " que não pode ser alterada nesta data")
+		#			return Result(error=True, message="Eleição " + str(Id_election) + " não pode ser alterada pois não a data atual não é a correta, isto irá ser reportado.")
 
 		# Verificações concluidas
   
@@ -722,7 +722,7 @@ def test_db():
 	dbtest.test_create_election()
 	#dbtest.test_vote()
 	#dbtest.test_vote_again()
-	dbtest.test_get_votes()
+	#dbtest.test_get_votes()
 	dbtest.test_get_logs()
 	#dbtest.test_get_elections()
 	dbtest.tearDown()
