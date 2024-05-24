@@ -18,6 +18,7 @@ while queue:
 
 
 # Importações dos módulos necessários
+from admin_dashboard import AdminDashboard
 from interface.autenticacao import SignatureAuthenticationApp
 from api.api_db import Database as api
 from interface.users import UserInterface, AdminInterface
@@ -80,8 +81,8 @@ class VotingSystemApp(tk.Tk):
                 self.show_voter_interface()
 
     def show_admin_interface(self):
-        admin_dashboard = AdminDashboard()
-        admin_dashboard.start_admin_dashboard()
+        admin_dashboard = AdminDashboard(self,self.user_id)
+        admin_dashboard.grab_set()
 
     def show_user_interface(self):
         user_interface = UserInterface(self)

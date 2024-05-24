@@ -177,6 +177,42 @@ class Database:
 			self.conn.rollback()
 			return Result(error=True, message="Erro de SQL ocorreu a criar utilizador")
 
+
+	def get_user_by_role(self, role: str) -> Result:
+		"""
+		Obtém os candidatos de uma certa eleições
+
+		:return: Um objeto Result contém uma lista de nomes dos candidatos se encontrados, 
+		ou uma mensagem de erro.
+		"""
+		try:
+			self.cursor.execute("SELECT name FROM users WHERE role = ? ", (role,))
+			aux = self.cursor.fetchall()
+			if aux == None:
+				return Result(error=True, message="Nenhum user foi encontrado")
+			return Result(value=aux)
+		except sqlite3.Error as e:
+			print("Erro :", e)
+			return Result(error=True, message="Erro de SQL a encontrar candidato")
+		
+
+	def get_candidates(self) -> Result:
+		"""
+		Obtém os candidatos de uma certa eleições
+
+		:return: Um objeto Result contém uma lista de nomes dos candidatos se encontrados, 
+		ou uma mensagem de erro.
+		"""
+		try:
+			self.cursor.execute("SELECT name FROM candidates ")
+			aux = self.cursor.fetchall()
+			if aux == None:
+				return Result(error=True, message="Sem candidatos encontrados")
+			return Result(value=aux)
+		except sqlite3.Error as e:
+			print("Erro :", e)
+			return Result(error=True, message="Erro de SQL a encontrar candidato")
+
 	def add_candidate(self, current_user: int, candidate_name: str) -> Result:
 		"""
 		Adiciona um novo candidato
@@ -269,8 +305,7 @@ class Database:
 		# Verifica duplicados
 		if self.check_if_exists("elections","name", name):
 			return Result(error=True, message="Eleição " + name + " já existe")
-		if start_date > end_date:
-			return Result(error=True, message="A data de início tem de ser anterior a data de fim")
+
 		current_date = time.strftime("DD-MM-YYYY")
 
 		# Verifica formatação da data 
@@ -297,7 +332,7 @@ class Database:
 			list_candidates_ids.append(self.get_id("candidates", "name", candidate).unwrap())
 
 		for user in list_user_Commission:
-			if not self.check_if_exists("users", "id", user):
+			if not self.check_if_exists("users", "name", user):
 				if self.get_role(user).unwrap() != "USER":
 					return Result(error=True, message="User " + str(user) + " não é user")
 		
@@ -324,7 +359,7 @@ class Database:
 
 		encypted_keys = []
 		for pos,key in enumerate(list_user_Commission):
-			key = self.get_public_key(key).unwrap()
+			key = self.get_public_key(self.get_id("users", "name", key).unwrap()).unwrap()
 			encypted_keys.append(encrypt_message(key, str(secret_sharing_scheme[pos])+"|DIV|" + str(shamir_secrets.prime)))
 					
 		try:
