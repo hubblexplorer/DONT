@@ -25,7 +25,7 @@ class AdminInterface(tk.Toplevel):
 
     def register_user(self):
         # Função para registrar novos usuários
-        messagebox.showinfo("Registar Utilizador", "Registar novo utilizador iniciado.")
+        messagebox.showinfo("Registar Usuário", "Registar novo utilizador iniciado.")
 
     def register_voter(self):
         # Função para registrar novos eleitores
