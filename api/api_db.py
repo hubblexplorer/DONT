@@ -598,6 +598,15 @@ class DatabaseTest(unittest.TestCase):
 
 		self.assertTrue(self.db.create_user(1, "user2", public_key, "USER").unwrap())
 
+
+		private_key, public_key = generate_rsa_keypair()
+		# Guarda a chaves privadas dos utilizadores
+		new_file = open("keys/private_key_user5.pem", "w")
+		new_file.write(private_key)
+		new_file.close()
+
+		self.assertTrue(self.db.create_user(1, "user5", public_key, "VOTER").unwrap())
+
 	def test_add_candidate(self):
 		self.assertTrue(self.db.add_candidate(1, "candidate1").unwrap())
 		self.assertTrue(self.db.add_candidate(1, "candidate2").unwrap())
@@ -729,4 +738,4 @@ def test_db():
 	print("Todos os testes efectuados com sucesso")
 	
 
-test_db()
+#test_db()
