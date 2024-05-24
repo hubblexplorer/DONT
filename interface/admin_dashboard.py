@@ -27,7 +27,7 @@ class AdminDashboard:
         self.frame = ttk.Frame(self.master)
         self.frame.pack(padx=10, pady=10, fill='x', expand=True)
 
-        # Botão para registrar novo utilizador
+        # Botão para registar novo utilizador
         self.register_user_button = ttk.Button(self.frame, text="Registar Novo Utilizador", command=self.register_user_interface)
         self.register_user_button.pack(fill='x', pady=5)
 
@@ -41,7 +41,7 @@ class AdminDashboard:
 
     def register_user_interface(self):
         self.new_window = tk.Toplevel(self.master)
-        self.new_window.title("Registar Novo Usuário")
+        self.new_window.title("Registar Novo Utilizador")
 
         self.label_username = ttk.Label(self.new_window, text="Nome do utilizador:")
         self.label_username.pack(padx=5, pady=5)
