@@ -15,7 +15,6 @@ while queue:
         if entry.is_dir():
             queue.append(entry.path)
 
-print(sys.path)
 
 
 # Importações dos módulos necessários
