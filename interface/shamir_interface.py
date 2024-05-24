@@ -17,6 +17,7 @@ current_dir = os.path.dirname(__file__)
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.append(parent_dir)
 
+
 from api.api_db import Database as api
 from shamir import Shamir
 from sistema.voting_system import VotingSystem
@@ -47,6 +48,7 @@ class ShamirInterface(tk.Toplevel):
 
         self.confirm_button = tk.Button(self, text=f"Confirmar {action}", command=self.confirm_action, state=tk.DISABLED)
         self.confirm_button.pack(pady=10)
+
 
     def load_elections(self):
         # Carregar eleições do utilizador autenticado
@@ -86,8 +88,9 @@ class ShamirInterface(tk.Toplevel):
                     self.close_voting()
                 elif self.action == "Verificar Resultados":
                     self.verify_results()
-                elif self.action == "":
-                    return self.segredo
+                elif self.action == "Votar":
+                    self.open_voting_app()
+
             else:
                 messagebox.showerror("Erro", "Falha na verificação das chaves. Tente novamente.")
 
@@ -139,6 +142,10 @@ class ShamirInterface(tk.Toplevel):
             self.destroy()  # Fechar a janela atual após fechar a votação
         else:
             messagebox.showerror("Erro", "Não foi possível fechar a votação.")
+
+    def open_voting_app(self):
+        return True
+        
 
     def verify_results(self):
         # Lógica para verificar os resultados

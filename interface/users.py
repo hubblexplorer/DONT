@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 from shamir_interface import ShamirInterface
+from main import VotingSystemApp
 
 # Importar a classe AdminDashboard do novo arquivo
 from admin_dashboard import AdminDashboard  # Ajuste do import
@@ -57,6 +58,9 @@ class UserInterface(tk.Toplevel):
         self.verify_results_button = tk.Button(self, text="Verificar Resultados", command=self.verify_results)
         self.verify_results_button.pack(pady=10)
 
+        self.vote_button = tk.Button(self, text="Votar", command=self.votar)
+        self.vote_button.pack(pady=10)
+
     def init_eleicao(self):
         # Abre a interface de Shamir para iniciar a eleição
         shamir_interface = ShamirInterface(self, "Iniciar Votação", self.user_id)
@@ -70,6 +74,25 @@ class UserInterface(tk.Toplevel):
     def verify_results(self):
         shamir_interface = ShamirInterface(self, "Verificar Resultados", self.user_id)
         shamir_interface.grab_set()
+    
+
+    def votar(self):
+        shamir_interface = ShamirInterface(self, "Votar", self.user_id)
+        shamir_interface.grab_set()
+
+        self.withdraw()  # Esconde a janela atual sem destruir
+
+        self.wait_window(shamir_interface)
+        secret = shamir_interface.segredo
+        if shamir_interface.success:
+            
+            # Criar uma nova instância de VotingSystemApp
+            app = VotingSystemApp(secret)
+            # Iniciar o loop principal da nova instância
+            app.mainloop()
+        else:
+            # Mostra a janela principal novamente em caso de falha
+            messagebox.showerror("Erro", "Falha na verificação das chaves. Tente novamente.")
 
 if __name__ == "__main__":
     root = tk.Tk()

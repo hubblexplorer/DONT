@@ -15,44 +15,43 @@ while queue:
         if entry.is_dir():
             queue.append(entry.path)
 
+print(sys.path)
 
 
 # Importações dos módulos necessários
 from interface.autenticacao import SignatureAuthenticationApp
 from api.api_db import Database as api
-from interface.users import UserInterface, AdminInterface
 from sistema.voting_system import VotingSystem
 from interface.VotingApp import VotingApp
 
 
 
 class VotingSystemApp(tk.Tk):
-    def __init__(self):
+    def __init__(self, shamir=None):
         super().__init__()
-        self.title("Sistema de Votação Eletrónica")
+        self.shamir = shamir
+        self.title("Sistema de Votação Eletrônica")
         self.geometry("600x400")
-
-        self.label = tk.Label(self, text="Bem-vindo ao Sistema de Votação Eletrónica", font=("Helvetica", 16))
+        
+        self.label = tk.Label(self, text="Bem-vindo ao Sistema de Votação Eletrônica", font=("Helvetica", 16))
         self.label.pack(pady=20)
 
         self.auth_button = tk.Button(self, text="Autenticar", command=self.authenticate_user, font=("Helvetica", 14))
         self.auth_button.pack(pady=20)
 
-        self.authenticated = False  # Flag para verificar se o usuário está autenticado
+        self.authenticated = False  # Flag para verificar se o utilizador está autenticado
         self.db = api()
 
     def authenticate_user(self):
         self.auth_button.config(state="disabled")  # Desabilita o botão de autenticação
         auth_window = tk.Toplevel(self)
         auth_app = SignatureAuthenticationApp(auth_window)
-        
         # Torna a janela modal
         auth_window.transient(self)
         auth_window.grab_set()
         self.wait_window(auth_window)
         
         if auth_app.result:
-            print(auth_app.nome_utilizador)
             self.authenticated = True
             # Fecha completamente a janela principal após a autenticação bem-sucedida
             self.withdraw() #Para esconder a janela principal sem fechar
@@ -75,16 +74,18 @@ class VotingSystemApp(tk.Tk):
             if user_role == "ADMIN":
                 self.show_admin_interface()
             elif user_role == "USER":
-                UserInterface(self, self.user_id)
+                self.show_user_interface()
             else:
                 self.show_voter_interface()
 
     def show_admin_interface(self):
-        admin_dashboard = AdminDashboard()
-        admin_dashboard.start_admin_dashboard()
+        from interface.users import AdminInterface 
+        admin_interface = AdminInterface(self)
+        admin_interface.grab_set()
 
     def show_user_interface(self):
-        user_interface = UserInterface(self)
+        from interface.users import UserInterface
+        user_interface = UserInterface(self, self.user_id)
         user_interface.grab_set()
 
     def show_voter_interface(self):
@@ -95,7 +96,7 @@ class VotingSystemApp(tk.Tk):
         election_id = self.db.get_elections_global()
         print("Eleição: ",election_id)
         system = VotingSystem(self.db)
-        system.store_vote(self.user_id,1,vote,"")
+        system.store_vote(self.user_id,1,vote, self.shamir)
 
 if __name__ == "__main__":
     app = VotingSystemApp()
