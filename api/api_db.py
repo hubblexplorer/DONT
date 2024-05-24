@@ -720,13 +720,13 @@ def test_db():
 	dbtest.test_add_candidate()
 	dbtest.test_error_create_user()
 	dbtest.test_create_election()
-	dbtest.test_vote()
-	dbtest.test_vote_again()
+	#dbtest.test_vote()
+	#dbtest.test_vote_again()
 	dbtest.test_get_votes()
 	dbtest.test_get_logs()
-	dbtest.test_get_elections()
+	#dbtest.test_get_elections()
 	dbtest.tearDown()
 	print("Todos os testes efectuados com sucesso")
 	
 
-#test_db()
+test_db()

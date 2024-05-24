@@ -142,62 +142,47 @@ class VotingSystem:
 if __name__ == "__main__":
     db = Database()
     
-    members = db.get_commission_members(1,1).unwrap()
+    members = db.get_commission_members(1, 1).unwrap()
 
     keys_parts = []
-    print("Members:")
+    print("Membros:")
 
-    for i,member in enumerate(members):
+    for i, member in enumerate(members):
         key = member[2]
-        file = open("keys/private_key_user"+str(i+2)+".pem", 'r')
+        file = open("keys/private_key_user" + str(i + 2) + ".pem", 'r')
         private_key = file.read()
         file.close()
-        key, prime = decrypt_message(private_key,key).split('|DIV|')
+        key, prime = decrypt_message(private_key, key).split('|DIV|')
         x, y = key.strip('(').strip(')').strip(' ').split(',')
-        keys_parts.append((int(x),int(y)))
+        keys_parts.append((int(x), int(y)))
     
-    
-
-    shamir = Shamir(keys_parts,int(prime))
+    shamir = Shamir(keys_parts, int(prime))
     vote = "option_1"
 
-    secret: str = shamir.secret
+    segredo: str = shamir.secret
 
     voting_system = VotingSystem(db)
     
-    """
-    # Encrypt and store a vote
-    vote = "option_1"
-    #voting_system.store_vote(3,1,vote, admin_password)
+    # Gerar e verificar HMAC
 
-    # Retrieve and decrypt votes
-    decrypted_votes = voting_system.retrieve_votes(2,1,admin_password)
-    print("Decrypted votes: ", decrypted_votes)
-    print("Number of votes: ", len(decrypted_votes))"""
-
-    # Generate and verify HMAC
-
-    encrypted_vot = voting_system.encrypt_vote(vote)
+    encripted_vote = voting_system.encrypt_vote(vote)
    
     hmac_result = voting_system.generate_hmac(vote)
-    print("Vote HMAC-SHA512:", hmac_result)
+    print("Voto HMAC-SHA512:", hmac_result)
 
-    decrypted_vote= voting_system.decrypt_vote(encrypted_vot)
-
-    
-    print("Decrypted vote:", decrypted_vote)
+    desencripted_vote = voting_system.decrypt_vote(encripted_vote)
+    print("Voto desencriptado:", desencripted_vote)
    
     is_valid = voting_system.verify_hmac(vote, hmac_result)
-    print("HMAC verification:", "Valid" if is_valid else "Invalid")
+    print("Verificação HMAC:", "Válido" if is_valid else "Inválido")
 
-    encrypt_key = voting_system.encrypt_key(shamir.secret.encode())
-    print("Encrypted key: ", encrypt_key)
+    encripted_key = voting_system.encrypt_key(shamir.secret.encode())
+    print("Chave encriptada: ", encripted_key)
 
-    new_voting = VotingSystem(db)
-    decrypted_key = new_voting.decrypt_key(encrypt_key,shamir.secret.encode())
-    print("Decrypted key: ", decrypted_key)
-    print("Decrypted key is valid: ", decrypted_key==voting_system.integrity_key)
+    new_voting_system = VotingSystem(db)
+    descripted_key = new_voting_system.decrypt_key(encripted_key, shamir.secret.encode())
+    print("Chave desencriptada: ", descripted_key)
+    print("Chave desencriptada é válida: ", descripted_key == voting_system.integrity_key)
 
-    
 
  

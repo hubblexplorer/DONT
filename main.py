@@ -15,7 +15,6 @@ while queue:
         if entry.is_dir():
             queue.append(entry.path)
 
-print(sys.path)
 
 
 # Importações dos módulos necessários
@@ -30,10 +29,10 @@ from interface.VotingApp import VotingApp
 class VotingSystemApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Sistema de Votação Eletrônica")
+        self.title("Sistema de Votação Eletrónica")
         self.geometry("600x400")
 
-        self.label = tk.Label(self, text="Bem-vindo ao Sistema de Votação Eletrônica", font=("Helvetica", 16))
+        self.label = tk.Label(self, text="Bem-vindo ao Sistema de Votação Eletrónica", font=("Helvetica", 16))
         self.label.pack(pady=20)
 
         self.auth_button = tk.Button(self, text="Autenticar", command=self.authenticate_user, font=("Helvetica", 14))
@@ -81,8 +80,8 @@ class VotingSystemApp(tk.Tk):
                 self.show_voter_interface()
 
     def show_admin_interface(self):
-        admin_interface = AdminInterface(self)
-        admin_interface.grab_set()
+        admin_dashboard = AdminDashboard()
+        admin_dashboard.start_admin_dashboard()
 
     def show_user_interface(self):
         user_interface = UserInterface(self)

@@ -41,25 +41,22 @@ class Result:
         if self.error:
             raise ValueError(self.message)
         return self.value
-
 """
-EXAMPLE OF USAGE
+EXEMPLO DE UTILIZAÇÃO
+Exemplo de utilização da classe Result
+Criar um objeto Result representando um resultado bem-sucedido
 
-# Example usage of the Result class
+resultado_sucesso = Result(value=42)
+print("O resultado_sucesso está OK?", resultado_sucesso.is_ok()) # Output: True
+print("O resultado_sucesso é um erro?", resultado_sucesso.is_err()) # Output: False
+print("Valor do resultado_sucesso:", resultado_sucesso.unwrap()) # Output: 42
+Criar um objeto Result representando um erro
 
-# Create a Result object representing a successful result
-success_result = Result(value=42)
-print("Is success_result OK?", success_result.is_ok())  # Output: True
-print("Is success_result an error?", success_result.is_err())  # Output: False
-print("Success result value:", success_result.unwrap())  # Output: 42
-
-# Create a Result object representing an error
-error_result = Result(error=404, message="Not found")
-print("Is error_result OK?", error_result.is_ok())  # Output: False
-print("Is error_result an error?", error_result.is_err())  # Output: True
+resultado_erro = Result(error=404, mensagem="Não encontrado")
+print("O resultado_erro está OK?", resultado_erro.is_ok()) # Output: False
+print("O resultado_erro é um erro?", resultado_erro.is_err()) # Output: True
 try:
-    print("Error result value:", error_result.unwrap())  # This will raise a ValueError
+print("Valor do resultado_erro:", resultado_erro.unwrap()) # Isto irá lançar um ValueError
 except ValueError as e:
-    print("Error:", e)  # Output: Error: Not found
-
+print("Erro:", e) # Output: Erro: Não encontrado
 """
