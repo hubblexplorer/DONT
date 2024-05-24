@@ -408,7 +408,7 @@ class Database:
 	
 	def get_elections_global(self) -> Result:
 		try:
-			self.cursor.execute("SELECT id FROM elections WHERE Is_Active = 1")
+			self.cursor.execute("SELECT id, Name FROM elections WHERE Is_Active = 1")
 			elections = self.cursor.fetchall()
 			if not elections:
 				return Result(error=True, message="Sem eleições criadas")

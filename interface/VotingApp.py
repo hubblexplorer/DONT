@@ -4,9 +4,9 @@ from tkinter import messagebox
 from tkinter import font
 
 class VotingApp:
-    def __init__(self, master,candidates):
+    def __init__(self, master,candidates,can_name):
         self.master = master
-        master.title("Votação Eleitoral")
+        master.title(can_name)
 
         # Ativar tela cheia
         self.master.attributes('-fullscreen', True)

@@ -90,10 +90,10 @@ class VotingSystemApp(tk.Tk):
         user_interface.grab_set()
 
     def show_voter_interface(self):
-        election_id = self.db.get_elections_global().unwrap()
+        election_id,election_name = self.db.get_elections_global().unwrap()
         candidates = self.db.get_candidates_by_election(election_id).unwrap()
         voting_window = tk.Toplevel(self)
-        app = VotingApp(voting_window,candidates)
+        app = VotingApp(voting_window,candidates,election_name)
         self.wait_window(voting_window)
         vote = app.get_vote()
         system = VotingSystem(self.db)
