@@ -4,7 +4,7 @@ from tkinter import ttk
 from shamir_interface import ShamirInterface
 
 # Importar a classe AdminDashboard do novo arquivo
-from .admin_dashboard import AdminDashboard
+from admin_dashboard import AdminDashboard  # Ajuste do import
 
 class AdminInterface(tk.Toplevel):
     def __init__(self, master):
@@ -14,10 +14,10 @@ class AdminInterface(tk.Toplevel):
 
         tk.Label(self, text="Bem-vindo à Interface de Admin", font=("Helvetica", 16)).pack(pady=20)
 
-        self.register_user_button = tk.Button(self, text="Registrar Novo Usuário", command=self.register_user)
+        self.register_user_button = tk.Button(self, text="Registar Novo Utilizador", command=self.register_user)
         self.register_user_button.pack(pady=10)
 
-        self.register_voter_button = tk.Button(self, text="Registrar Novo Eleitor", command=self.register_voter)
+        self.register_voter_button = tk.Button(self, text="Registar Novo Eleitor", command=self.register_voter)
         self.register_voter_button.pack(pady=10)
 
         self.setup_voting_button = tk.Button(self, text="Criar Votação", command=self.setup_voting)
@@ -25,11 +25,11 @@ class AdminInterface(tk.Toplevel):
 
     def register_user(self):
         # Função para registrar novos usuários
-        messagebox.showinfo("Registrar Usuário", "Registrar novo usuário iniciado.")
+        messagebox.showinfo("Registar Utilizador", "Registar novo utilizador iniciado.")
 
     def register_voter(self):
         # Função para registrar novos eleitores
-        messagebox.showinfo("Registrar Eleitor", "Registrar novo eleitor iniciado.")
+        messagebox.showinfo("Registar Eleitor", "Registar novo eleitor iniciado.")
 
     def setup_voting(self):
         # Função para configurar a votação
@@ -39,7 +39,6 @@ class AdminInterface(tk.Toplevel):
         # Função para autorizar eleitores a votar
         messagebox.showinfo("Autorizar Eleitores", "Autorização de eleitores iniciada.")
 
-
 class UserInterface(tk.Toplevel):
     def __init__(self, master, user_id):
         super().__init__(master)
@@ -47,7 +46,7 @@ class UserInterface(tk.Toplevel):
         self.geometry("600x400")
         self.user_id = user_id
 
-        tk.Label(self, text="Bem-vindo à Interface de Usuário", font=("Helvetica", 16)).pack(pady=20)
+        tk.Label(self, text="Bem-vindo à Interface de Utilizador", font=("Helvetica", 16)).pack(pady=20)
 
         self.init_button = tk.Button(self, text="Iniciar Eleição", command=self.init_eleicao)
         self.init_button.pack(pady=10)
@@ -72,15 +71,13 @@ class UserInterface(tk.Toplevel):
         shamir_interface = ShamirInterface(self, "Verificar Resultados", self.user_id)
         shamir_interface.grab_set()
 
-
-
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Interface Principal")
 
     def open_admin_dashboard():
-        new_window = tk.Toplevel(root)
-        app = AdminDashboard(new_window)
+        app = AdminDashboard(root)  # Modificado para abrir diretamente o AdminDashboard
+        root.withdraw()  # Esconder a janela principal ao abrir o painel de administração
 
     main_frame = ttk.Frame(root)
     main_frame.pack(padx=10, pady=10, fill='x', expand=True)
