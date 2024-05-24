@@ -4,7 +4,7 @@ from tkinter import messagebox
 from tkinter import font
 
 class VotingApp:
-    def __init__(self, master):
+    def __init__(self, master,candidates):
         self.master = master
         master.title("Votação Eleitoral")
 
@@ -16,28 +16,7 @@ class VotingApp:
 
         self.setup_window()
 
-        self.partidos = [
-            {"nome_completo": "Partido Nacional Republicano", "diminutivo": "PNR", "estado": 0},
-            {"nome_completo": "Partido Comunista dos Trabalhadores Portugueses", "diminutivo": "PCTP", "estado": 0},
-            {"nome_completo": "Partido Social Democrata", "diminutivo": "PSD", "estado": 0},
-            {"nome_completo": "Partido Socialista", "diminutivo": "PS", "estado": 0},
-            {"nome_completo": "Centro Democrático Social - Partido Popular", "diminutivo": "CDS-PP", "estado": 0},
-            {"nome_completo": "Bloco de Esquerda", "diminutivo": "BE", "estado": 0},
-            {"nome_completo": "Partido Comunista Português", "diminutivo": "PCP", "estado": 0},
-            {"nome_completo": "Partido Ecologista Os Verdes", "diminutivo": "PEV", "estado": 0},
-            {"nome_completo": "Pessoas-Animais-Natureza", "diminutivo": "PAN", "estado": 0},
-            {"nome_completo": "Iniciativa Liberal", "diminutivo": "IL", "estado": 0},
-            {"nome_completo": "Chega", "diminutivo": "CH", "estado": 0},
-            {"nome_completo": "LIVRE", "diminutivo": "L", "estado": 0},
-            {"nome_completo": "Aliança", "diminutivo": "A", "estado": 0},
-            {"nome_completo": "Partido da Terra", "diminutivo": "MPT", "estado": 0},
-            {"nome_completo": "Nós, Cidadãos!", "diminutivo": "NC", "estado": 0},
-            {"nome_completo": "R.I.R. - Reagir, Incluir, Reciclar", "diminutivo": "RIR", "estado": 0},
-            {"nome_completo": "Partido Renovador Democrático", "diminutivo": "PRD", "estado": 0},
-            {"nome_completo": "Partido dos Pintassilgos", "diminutivo": "PDB", "estado": 0},
-            {"nome_completo": "Voto em Branco", "diminutivo": " ", "estado": 0}
-            # Adicione mais partidos conforme necessário
-        ]
+        self.partidos = [{"nome_completo": candidate} for candidate in candidates]
 
         self.check_vars = {partido["diminutivo"]: tk.BooleanVar() for partido in self.partidos}
 
