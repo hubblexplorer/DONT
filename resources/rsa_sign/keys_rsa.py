@@ -34,13 +34,13 @@ def generate_rsa_keypair():
     return private_key_str, public_key_str
 
 def encrypt_message(public_key_str:str, message:str):
-    # Load the public key
+    # Carrega a chave publica
     public_key = serialization.load_pem_public_key(
         public_key_str.encode(),
         backend=default_backend()
     )
 
-    # Encrypt the message
+    # Encripta a mensagem
     ciphertext = public_key.encrypt(
         message.encode(),
         padding.OAEP(
@@ -53,14 +53,14 @@ def encrypt_message(public_key_str:str, message:str):
     return ciphertext
 
 def decrypt_message(private_key_str, ciphertext):
-    # Load the private key
+    # Carrega a chave privada
     private_key = serialization.load_pem_private_key(
         private_key_str.encode(),
         password=None,
         backend=default_backend()
     )
 
-    # Decrypt the message
+    # Desencripta a mensagem
     plaintext = private_key.decrypt(
         ciphertext,
         padding.OAEP(
