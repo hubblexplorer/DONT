@@ -92,7 +92,7 @@ class VotingSystem:
         """Cifra e armazena um voto na base de dados."""
         encrypted_vote = self.encrypt_vote(vote)
         hmac_result = self.generate_hmac(vote)
-        generated_key = self.encrypt_vote(self.integrity_key)
+        generated_key = self.encrypt_key(password)
         
         result =  self.db.vote(current_user,election,encrypted_vote,hmac_result,generated_key)
         if result.is_err():

@@ -92,10 +92,10 @@ class VotingSystemApp(tk.Tk):
         app = VotingApp(voting_window)
         self.wait_window(voting_window)
         vote = app.get_vote()
-        election_id = self.db.get_elections_global()
+        election_id = self.db.get_elections_global().unwrap()
         print("Eleição: ",election_id)
         system = VotingSystem(self.db)
-        system.store_vote(self.user_id,1,vote,"")
+        system.store_vote(self.user_id,election_id,vote,"")
 
 if __name__ == "__main__":
     app = VotingSystemApp()
