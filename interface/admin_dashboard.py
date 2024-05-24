@@ -55,15 +55,22 @@ class AdminDashboard:
         self.entry_password = ttk.Entry(self.new_window, show='*')
         self.entry_password.pack(padx=5, pady=5)
 
+        self.label_role = ttk.Label(self.new_window, text="Papel:")
+        self.label_role.pack(padx=5, pady=5)
+
+        self.entry_role = ttk.Entry(self.new_window)
+        self.entry_role.pack(padx=5, pady=5)
+
         self.submit_button = ttk.Button(self.new_window, text="Registar", command=self.register_user)
         self.submit_button.pack(padx=5, pady=5)
 
     def register_user(self):
         username = self.entry_username.get()
         password = self.entry_password.get()
+        role = self.entry_role.get()
 
-        if username and password:
-            response = Database.register_user(username, password)
+        if username and password and role:
+            response = Database.create_user(username, password, role)
             if response.get('success'):
                 messagebox.showinfo("Sucesso", "Utilizador registado com sucesso!")
                 self.new_window.destroy()
@@ -84,6 +91,7 @@ class AdminDashboard:
 
         self.submit_button = ttk.Button(self.new_window, text="Criar", command=self.create_commission)
         self.submit_button.pack(padx=5, pady=5)
+
 
     def create_commission(self):
         commission_name = self.entry_commission_name.get()
@@ -134,9 +142,6 @@ class AdminDashboard:
         self.label_end_date = ttk.Label(self.new_window, text="Data de Fim (DD-MM-YYYY):")
         self.label_end_date.pack(padx=5, pady=5)
 
-        self.entry_end_date = ttk.Entry(self.new_window)
-        self.entry_end_date.pack(padx=5, pady=5)
-
         self.submit_button = ttk.Button(self.new_window, text="Criar", command=self.create_election)
         self.submit_button.pack(padx=5, pady=5)
 
@@ -165,3 +170,6 @@ def start_admin_dashboard():
 
 if __name__ == "__main__":
     start_admin_dashboard()
+    self.entry_end_date = ttk.Entry(self.new_window)
+    self.entry_end_date.pack(padx=5, pady=5)
+
