@@ -23,7 +23,7 @@ class Authenticator:
     #Para fins logisticos, na realidade o utilizador é que tem as chaves
     def register(self, username, role, current_user):
         
-        # Cria uma chave pública/privada para o novo usuário
+        # Cria uma chave pública/privada para o novo utilizador
         self.chave_publica, chave_privada = rsa.newkeys(512)
         print("Chave privada: ",chave_privada)
         #api.create_user(current_user=current_user, new_pubkey=chave_publica, new_role=role, new_username=username)
@@ -61,7 +61,7 @@ class Authenticator:
     def autenticar(self, nome_utilizador, desafio, assinatura):
         api_instance = api()
         user_id = api_instance.get_id("users", "name", nome_utilizador).value
-        # Recupera a chave pública do usuário
+        # Recupera a chave pública do utilizador
         chave_publica_str = api_instance.get_public_key(current_user=user_id).value
 
         # Verificar se 'assinatura' já está em bytes, caso contrário, converter de hexadecimal para bytes

@@ -5,7 +5,7 @@ class Result:
 
     def __init__(self, value=None, error=False, message=None):
         """
-        Inicializa uma nova objeto de Resultado.
+        Inicia um novo objeto de Resultado.
 
         :param value: O valor do resultado (se bem-sucedido).
         :param error: Código de erro (se ocorreu um erro).
