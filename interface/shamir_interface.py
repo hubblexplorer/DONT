@@ -86,6 +86,8 @@ class ShamirInterface(tk.Toplevel):
                     self.close_voting()
                 elif self.action == "Verificar Resultados":
                     self.verify_results()
+                elif self.action == "":
+                    return self.segredo
             else:
                 messagebox.showerror("Erro", "Falha na verificação das chaves. Tente novamente.")
 
@@ -107,6 +109,7 @@ class ShamirInterface(tk.Toplevel):
             
             # Verifique se o segredo foi reconstruído corretamente
             if secret:
+                self.segredo = secret
                 self.success = True
                 return True
             else:
