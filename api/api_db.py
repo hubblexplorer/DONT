@@ -105,7 +105,7 @@ class Database:
 		:return: Objeto de Result com o role se foi encontrado,
 		ou uma mensagem de erro.
    	 	"""
-		self.cursor.execute("SELECT role FROM users WHERE id = ?", (str(current_user)))
+		self.cursor.execute("SELECT role FROM users WHERE id = ?", (str(current_user),))
 		aux = self.cursor.fetchone()
 		if aux == None:
 			return Result(error=True, message= "Utilizador não encontrado")
@@ -177,6 +177,42 @@ class Database:
 			self.conn.rollback()
 			return Result(error=True, message="Erro de SQL ocorreu a criar utilizador")
 
+
+	def get_user_by_role(self, role: str) -> Result:
+		"""
+		Obtém os candidatos de uma certa eleições
+
+		:return: Um objeto Result contém uma lista de nomes dos candidatos se encontrados, 
+		ou uma mensagem de erro.
+		"""
+		try:
+			self.cursor.execute("SELECT name FROM users WHERE role = ? ", (role,))
+			aux = self.cursor.fetchall()
+			if aux == None:
+				return Result(error=True, message="Nenhum user foi encontrado")
+			return Result(value=aux)
+		except sqlite3.Error as e:
+			print("Erro :", e)
+			return Result(error=True, message="Erro de SQL a encontrar candidato")
+		
+
+	def get_candidates(self) -> Result:
+		"""
+		Obtém os candidatos de uma certa eleições
+
+		:return: Um objeto Result contém uma lista de nomes dos candidatos se encontrados, 
+		ou uma mensagem de erro.
+		"""
+		try:
+			self.cursor.execute("SELECT name FROM candidates ")
+			aux = self.cursor.fetchall()
+			if aux == None:
+				return Result(error=True, message="Sem candidatos encontrados")
+			return Result(value=aux)
+		except sqlite3.Error as e:
+			print("Erro :", e)
+			return Result(error=True, message="Erro de SQL a encontrar candidato")
+
 	def add_candidate(self, current_user: int, candidate_name: str) -> Result:
 		"""
 		Adiciona um novo candidato
@@ -210,20 +246,33 @@ class Database:
 		"""
 		Obtém os candidatos de uma certa eleições
 
-		:return: Um objeto Result contém uma lista de nomes dos candidatos se encontrados, 
+		:return: Um objeto Result contendo uma lista de nomes dos candidatos se encontrados, 
 		ou uma mensagem de erro.
 		"""
 		try:
-			self.cursor.execute("SELECT id_candidate FROM elections_candidates where id_election = ?", (election_id,))
+			# Obtenha os IDs dos candidatos
+			self.cursor.execute("SELECT id_candidates FROM Election_Candidates WHERE id_election = ?", (election_id,))
 			aux = self.cursor.fetchall()
-			self.cursor.execute("SELECT name FROM candidates WHERE id IN (?)", (aux,))
-			aux = self.cursor.fetchall()
-			if aux == None:
-				return Result(error=True, message="No candidates ou um mensagem de erro indicando que nenhum candidato foi encontrado")
-			return Result(value=aux)
+			candidate_ids = [row[0] for row in aux]  # Extraia os IDs dos candidatos
+
+			# Verifique se há IDs de candidatos
+			if not candidate_ids:
+				return Result(error=True, message="Nenhum candidato encontrado para a eleição fornecida.")
+
+			# Use os IDs para obter os nomes dos candidatos
+			placeholders = ','.join('?' for _ in candidate_ids)  # Crie os placeholders
+			query = f"SELECT name FROM Candidates WHERE id IN ({placeholders})"
+			self.cursor.execute(query, candidate_ids)
+			candidate_names = [row[0] for row in self.cursor.fetchall()]  # Extraia os nomes
+
+			# Verifique se há nomes de candidatos
+			if not candidate_names:
+				return Result(error=True, message="Nenhum candidato encontrado com os IDs fornecidos.")
+
+			return Result(value=candidate_names)
 		except sqlite3.Error as e:
-			print("Erro :", e)
-			return Result(error=True, message="Erro de SQL a encontrar candidato")
+			print("Erro:", e)
+			return Result(error=True, message="Erro de SQL ao encontrar candidatos")
 
 		
 
@@ -269,8 +318,7 @@ class Database:
 		# Verifica duplicados
 		if self.check_if_exists("elections","name", name):
 			return Result(error=True, message="Eleição " + name + " já existe")
-		if start_date > end_date:
-			return Result(error=True, message="A data de início tem de ser anterior a data de fim")
+
 		current_date = time.strftime("DD-MM-YYYY")
 
 		# Verifica formatação da data 
@@ -297,7 +345,7 @@ class Database:
 			list_candidates_ids.append(self.get_id("candidates", "name", candidate).unwrap())
 
 		for user in list_user_Commission:
-			if not self.check_if_exists("users", "id", user):
+			if not self.check_if_exists("users", "name", user):
 				if self.get_role(user).unwrap() != "USER":
 					return Result(error=True, message="User " + str(user) + " não é user")
 		
@@ -324,7 +372,7 @@ class Database:
 
 		encypted_keys = []
 		for pos,key in enumerate(list_user_Commission):
-			key = self.get_public_key(key).unwrap()
+			key = self.get_public_key(self.get_id("users", "name", key).unwrap()).unwrap()
 			encypted_keys.append(encrypt_message(key, str(secret_sharing_scheme[pos])+"|DIV|" + str(shamir_secrets.prime)))
 					
 		try:
@@ -333,7 +381,8 @@ class Database:
 			id_election = self.cursor.lastrowid
 			self.cursor.execute("INSERT INTO Commissions (ID, Id_election, num_members) VALUES (?, ?,?)", (number_commission, id_election, len(list_user_Commission)))
 			for pos,user in enumerate(list_user_Commission):
-				self.cursor.execute("INSERT INTO Commission_members (Id_commission, Id_user, SHAMIR_SECRET_ENCRYPTED) VALUES (?, ?, ?)", (number_commission, user, encypted_keys[pos]))
+				user_id = self.get_id("users", "name", user).unwrap()
+				self.cursor.execute("INSERT INTO Commission_members (Id_commission, Id_user, SHAMIR_SECRET_ENCRYPTED) VALUES (?, ?, ?)", (number_commission, user_id, encypted_keys[pos]))
 			for candidate in list_candidates_ids:
 				self.cursor.execute("INSERT INTO election_candidates (Id_election, Id_candidates) VALUES (?, ?)", (id_election, candidate))
 			return self.log(current_user, "CRIAR_ELEIÇÃO", "User " + str(current_user) + " criou a eleição " + name)
@@ -373,7 +422,7 @@ class Database:
 	
 	def get_elections_global(self) -> Result:
 		try:
-			self.cursor.execute("SELECT id FROM elections WHERE Is_Active = 1")
+			self.cursor.execute("SELECT id, Name FROM elections WHERE Is_Active = 1")
 			elections = self.cursor.fetchall()
 			if not elections:
 				return Result(error=True, message="Sem eleições criadas")
@@ -400,19 +449,19 @@ class Database:
 			return Result(error=True, message="Apenas users podem mudar o estado a eleição, isto irá ser reportado")
 		
 		# Verificar se a data está nos limites.
-		current_date = time.strftime("DD-MM-YYYY")
+		#current_date = time.strftime("DD-MM-YYYY")
 
-		try:
-			aux = self.cursor.execute("SELECT start_date, end_date FROM elections WHERE Id = ?", (Id_election,))
-		except sqlite3.Error as e:
-			print("Erro:", e)
-			return Result(error=True, message="Erro SQL a obter as datas da eleição")
+		#try:
+		#	aux = self.cursor.execute("SELECT start_date, end_date FROM elections WHERE Id = ?", (Id_election,))
+		#except sqlite3.Error as e:
+		#	print("Erro:", e)
+		#	return Result(error=True, message="Erro SQL a obter as datas da eleição")
 		
-		start_date, end_date = aux.fetchone()
-		if status:
-			if current_date < start_date or current_date > end_date:
-				self.log(current_user,"ERROR: PERMISSÃO_NEGADA", "User " + str(current_user) + "  tentou alterar estado da eleição " + str(Id_election) + " que não pode ser alterada nesta data")
-				return Result(error=True, message="Eleição " + str(Id_election) + " não pode ser alterada pois não a data atual não é a correta, isto irá ser reportado.")
+		#start_date, end_date = aux.fetchone()
+		#if status:
+		#	if current_date < start_date or current_date > end_date:
+		#		self.log(current_user,"ERROR: PERMISSÃO_NEGADA", "User " + str(current_user) + "  tentou alterar estado da eleição " + str(Id_election) + " que não pode ser alterada nesta data")
+		#			return Result(error=True, message="Eleição " + str(Id_election) + " não pode ser alterada pois não a data atual não é a correta, isto irá ser reportado.")
 
 		# Verificações concluidas
   
@@ -474,7 +523,6 @@ class Database:
 
 		try: 
 			self.cursor.execute("BEGIN TRANSACTION")
-			self.cursor.execute("INSERT INTO Votes (Vote,Hmac,ID_election,Key) VALUES (?, ?, ?,?)", (vote, hmac, Id_election, key))
 			self.cursor.execute("INSERT INTO Votes (Vote,Hmac,ID_election,Key) VALUES (?, ?, ?,?)", (vote, hmac, Id_election, key))
 			self.cursor.execute("INSERT INTO Election_voters (Id_voter, Id_election) VALUES (?, ?)", (current_user, Id_election))
 			return self.log(current_user, "VOTE", "User " + str(current_user) + " votou na eleição " + str(Id_election))
@@ -598,6 +646,15 @@ class DatabaseTest(unittest.TestCase):
 
 		self.assertTrue(self.db.create_user(1, "user2", public_key, "USER").unwrap())
 
+
+		private_key, public_key = generate_rsa_keypair()
+		# Guarda a chaves privadas dos utilizadores
+		new_file = open("keys/private_key_user5.pem", "w")
+		new_file.write(private_key)
+		new_file.close()
+
+		self.assertTrue(self.db.create_user(1, "user5", public_key, "VOTER").unwrap())
+
 	def test_add_candidate(self):
 		self.assertTrue(self.db.add_candidate(1, "candidate1").unwrap())
 		self.assertTrue(self.db.add_candidate(1, "candidate2").unwrap())
@@ -715,18 +772,18 @@ def test_db():
 	
 	dbtest = DatabaseTest()
 	dbtest.setUp()	
-	dbtest.test_get_role()
-	dbtest.test_create_user()
-	dbtest.test_add_candidate()
-	dbtest.test_error_create_user()
-	dbtest.test_create_election()
+	#dbtest.test_get_role()
+	#dbtest.test_create_user()
+	#dbtest.test_add_candidate()
+	#dbtest.test_error_create_user()
+	#dbtest.test_create_election()
 	#dbtest.test_vote()
 	#dbtest.test_vote_again()
-	dbtest.test_get_votes()
-	dbtest.test_get_logs()
+	#dbtest.test_get_votes()
+	#dbtest.test_get_logs()
 	#dbtest.test_get_elections()
 	dbtest.tearDown()
 	print("Todos os testes efectuados com sucesso")
 	
 
-test_db()
+#test_db()

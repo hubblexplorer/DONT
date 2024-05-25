@@ -1,6 +1,6 @@
 import random
 from sympy import mod_inverse
-from Crypto.Util import number
+from sympy import isprime
 
 class Shamir:
     def __init__(self, *args):
@@ -19,9 +19,15 @@ class Shamir:
         self.num_members = num_members
         self.secret_sharing_scheme = []
         self.fuction = None
-        self.prime = number.getPrime(bits)
+        self.prime = self.generate_prime(bits)
         self.secret = int(secret.hex(), 16)
         self.generate_secret_sharing_scheme()
+
+    def generate_prime(self, bits: int) -> int:
+        prime_candidate = random.getrandbits(bits)
+        while not isprime(prime_candidate):
+            prime_candidate += 1
+        return prime_candidate
 
     def reconstruct_init(self, secrets: list, prime: int):
         self.num_members = len(secrets)

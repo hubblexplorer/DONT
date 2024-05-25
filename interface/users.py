@@ -2,46 +2,12 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 from shamir_interface import ShamirInterface
-
-# Importar a classe AdminDashboard do novo arquivo
-from admin_dashboard import AdminDashboard  # Ajuste do import
-
-class AdminInterface(tk.Toplevel):
-    def __init__(self, master):
-        super().__init__(master)
-        self.title("Admin Interface")
-        self.geometry("600x400")
-
-        tk.Label(self, text="Bem-vindo à Interface de Admin", font=("Helvetica", 16)).pack(pady=20)
-
-        self.register_user_button = tk.Button(self, text="Registar Novo Utilizador", command=self.register_user)
-        self.register_user_button.pack(pady=10)
-
-        self.register_voter_button = tk.Button(self, text="Registar Novo Eleitor", command=self.register_voter)
-        self.register_voter_button.pack(pady=10)
-
-        self.setup_voting_button = tk.Button(self, text="Criar Votação", command=self.setup_voting)
-        self.setup_voting_button.pack(pady=10)
-
-    def register_user(self):
-        # Função para registrar novos usuários
-        messagebox.showinfo("Registar Usuário", "Registar novo utilizador iniciado.")
-
-    def register_voter(self):
-        # Função para registrar novos eleitores
-        messagebox.showinfo("Registar Eleitor", "Registar novo eleitor iniciado.")
-
-    def setup_voting(self):
-        # Função para configurar a votação
-        messagebox.showinfo("Criar Votação", "Configuração da votação iniciada.")
-
-    def authorize_voters(self):
-        # Função para autorizar eleitores a votar
-        messagebox.showinfo("Autorizar Eleitores", "Autorização de eleitores iniciada.")
+from main import VotingSystemApp
 
 class UserInterface(tk.Toplevel):
     def __init__(self, master, user_id):
         super().__init__(master)
+        self.master = master
         self.title("User Interface")
         self.geometry("600x400")
         self.user_id = user_id
@@ -57,6 +23,9 @@ class UserInterface(tk.Toplevel):
         self.verify_results_button = tk.Button(self, text="Verificar Resultados", command=self.verify_results)
         self.verify_results_button.pack(pady=10)
 
+        self.vote_button = tk.Button(self, text="Votar", command=self.votar)
+        self.vote_button.pack(pady=10)
+
     def init_eleicao(self):
         # Abre a interface de Shamir para iniciar a eleição
         shamir_interface = ShamirInterface(self, "Iniciar Votação", self.user_id)
@@ -71,18 +40,25 @@ class UserInterface(tk.Toplevel):
         shamir_interface = ShamirInterface(self, "Verificar Resultados", self.user_id)
         shamir_interface.grab_set()
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Interface Principal")
+    def votar(self):
+        shamir_interface = ShamirInterface(self, "Votar", self.user_id)
+        shamir_interface.grab_set()
 
-    def open_admin_dashboard():
-        app = AdminDashboard(root)  # Modificado para abrir diretamente o AdminDashboard
-        root.withdraw()  # Esconder a janela principal ao abrir o painel de administração
+        self.withdraw()  # Esconde a janela atual sem destruir
 
-    main_frame = ttk.Frame(root)
-    main_frame.pack(padx=10, pady=10, fill='x', expand=True)
+        self.wait_window(shamir_interface)
+        secret = shamir_interface.segredo
+        if shamir_interface.success:
+            # Fechar todas as janelas abertas e a janela principal
+            self.destroy()  # Destroi a janela atual de UserInterface
+            self.master.destroy()  # Destroi a janela principal (VotingSystemApp)
 
-    admin_button = ttk.Button(main_frame, text="Abrir Dashboard de Admin", command=open_admin_dashboard)
-    admin_button.pack(fill='x', pady=5)
-
-    root.mainloop()
+            # Criar uma nova instância de VotingSystemApp
+            new_app = VotingSystemApp(secret)
+            # Iniciar o loop principal da nova instância
+            new_app.mainloop()
+        else:
+            # Mostra a janela principal novamente em caso de falha
+            self.deiconify()
+            messagebox.showerror("Erro", "Falha na verificação das chaves. Tente novamente.")
+            

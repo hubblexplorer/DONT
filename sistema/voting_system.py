@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import secrets
+import base64
 import os
 import sys
 from base64 import urlsafe_b64encode, urlsafe_b64decode
@@ -8,6 +9,9 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
+import hashlib
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
 
 
 
@@ -29,76 +33,88 @@ while queue:
             queue.append(entry.path)
 
         
-from VotingApp import start_app
-from api_db import Database
+from interface.VotingApp import start_app
+from api.api_db import Database
 from shamir import Shamir
-from keys_rsa import decrypt_message
+from resources.rsa_sign.keys_rsa import decrypt_message
 
 class VotingSystem:
     def __init__(self, db: Database):
         """Inicia a classe que gera uma nova chave de integridade para a votação."""
         
-        self.integrity_key = secrets.token_bytes(32)  # Gera uma chave segura de 256 bits
- 
+        self.integrity_key = secrets.token_bytes(16)  # Gera uma chave segura de 256 bits
+        print("CHAVE GERADA ALEATORIAMENTE: ",self.integrity_key)
         self.db = db
 
-    def derive_key(self, password, salt):
+    def derive_key(self, password: bytes, salt: bytes) -> bytes:
         """Deriva uma chave AES de 128 bits a partir da senha fornecida usando PBKDF2."""
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
-            length=16,
+            length=16,  # 128 bits
             salt=salt,
             iterations=100000,
             backend=default_backend()
         )
         return kdf.derive(password)
 
-    def encrypt_vote(self, vote):
-        """Cifra um voto AES128-CBC com uma chave derivada da senha fornecida."""
+    def encrypt_vote(self, vote: str) -> str:
         salt = secrets.token_bytes(16)
         key = self.derive_key(self.integrity_key, salt)
         iv = secrets.token_bytes(16)
-        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        vote_bytes = vote.encode('utf-8')
-        padded_vote = vote_bytes + b"\0" * (16 - len(vote_bytes) % 16)
-        ciphertext = encryptor.update(padded_vote) + encryptor.finalize()
-        return urlsafe_b64encode(salt + iv + ciphertext).decode('utf-8')
+        cipher = AES.new(key, AES.MODE_CBC, iv)
 
-    def decrypt_vote(self, encrypted_vote):
-        """Decifra um voto AES128-CBC com uma chave derivada da senha fornecida."""
-        data = urlsafe_b64decode(encrypted_vote.encode('utf-8'))
-        salt, iv, ciphertext = data[:16], data[16:32], data[32:]
-        key = self.derive_key(self.integrity_key, salt)
-        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-        padded_vote = decryptor.update(ciphertext) + decryptor.finalize()
-        return padded_vote.rstrip(b"\0").decode('utf-8')
-
-    def generate_hmac(self, vote, key=None):
-        """Gera um HMAC-SHA512 para um voto usando a chave de integridade da votacao atual."""
         vote_bytes = vote.encode('utf-8')
-        if  key is None:
+        padded_vote_bytes = pad(vote_bytes, AES.block_size)
+        ciphertext = cipher.encrypt(padded_vote_bytes)
+
+        encrypted_data = base64.b64encode(iv + salt + ciphertext).decode('utf-8')
+        return encrypted_data
+
+
+    def decrypt_vote(self, encrypted_vote: str, key: bytes) -> str:
+        stored_data = base64.b64decode(encrypted_vote)
+        iv = stored_data[:16]
+        salt = stored_data[16:32]
+        ciphertext = stored_data[32:]
+
+        derived_key = self.derive_key(key, salt)
+
+        decipher = AES.new(derived_key, AES.MODE_CBC, iv)
+        decrypted_padded = decipher.decrypt(ciphertext)
+        try:
+            decrypted = unpad(decrypted_padded, AES.block_size)
+        except ValueError:
+            print("Incorrect decryption")
+            raise
+        return decrypted.decode('utf-8')
+        
+
+    # Função para gerar HMAC
+    def generate_hmac(self, vote: str, algorithm=hashlib.sha512,key:bytes = None):
+        if key is None:
             key = self.integrity_key
- 
-        return hmac.new(key, vote_bytes, hashlib.sha512).hexdigest()
+        print("KEYYYYYYYY:",key)
+        vote = vote.encode()
+        return hmac.new(key, vote, algorithm).hexdigest()
 
-    def verify_hmac(self, vote, provided_hmac, key = None):
-        """Verifica o HMAC de um voto submetido comparando com um HMAC fornecido."""
-        expected_hmac = self.generate_hmac(vote, key)
-        return hmac.compare_digest(expected_hmac, provided_hmac)
-
+    # Função para comparar HMACs de forma segura
+    def verify_hmac(self, vote: str, key: bytes, hmac2:str):
+        hmac1 = self.generate_hmac(vote,key=key)
+        print("HMACCCCCC",hmac1)
+        return hmac.compare_digest(hmac1, hmac2)
+    
     def store_vote(self, current_user, election, vote, password):
         """Cifra e armazena um voto na base de dados."""
         encrypted_vote = self.encrypt_vote(vote)
         hmac_result = self.generate_hmac(vote)
-        generated_key = self.encrypt_vote(self.integrity_key)
-        
+        generated_key = self.encrypt_key(password)
+        print("Chave: ",self.integrity_key)
         result =  self.db.vote(current_user,election,encrypted_vote,hmac_result,generated_key)
         if result.is_err():
             print("Erro ao armazenar o voto:", result.message)
         else:
             print("Voto armazenado com sucesso!")
+
 
     def retrieve_votes(self, current_user,id_election,password):
         """Recupera e decifra todos os votos da base de dados."""
@@ -118,71 +134,79 @@ class VotingSystem:
                     votes.append(vote)
             return votes
         
-    def encrypt_key(self, password:str):
+    def encrypt_key(self, password: str) -> str:
+        """Cifra a chave de integridade usando AES128-CBC com uma chave derivada da senha fornecida."""
         salt = secrets.token_bytes(16)
-        key = self.derive_key(password, salt)
+        key = self.derive_key(password.encode('utf-8'), salt)  # Convert password to bytes
         iv = secrets.token_bytes(16)
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
         encryptor = cipher.encryptor()
-        vote_bytes = self.integrity_key
+        vote_bytes = self.integrity_key  # Ensure this is in bytes
         padded_vote = vote_bytes + b"\0" * (16 - len(vote_bytes) % 16)
         ciphertext = encryptor.update(padded_vote) + encryptor.finalize()
         return urlsafe_b64encode(salt + iv + ciphertext).decode('utf-8')
-    
-    def decrypt_key(self, encrypted_key: bytes, password: str):
-        data = urlsafe_b64decode(encrypted_key)
+        
+    def decrypt_key(self, encrypted_key: str, password: str) -> bytes:
+        # Ensure encrypted_key is a string for base64 decoding
+        if isinstance(encrypted_key, bytes):
+            encrypted_key = encrypted_key.decode('utf-8')
+
+        # Add padding to base64 string if necessary
+        missing_padding = len(encrypted_key) % 4
+        if missing_padding:
+            encrypted_key += '=' * (4 - missing_padding)
+
+        # Decode the base64 string
+        data = base64.urlsafe_b64decode(encrypted_key)
+
+        # Extract salt, iv, and ciphertext
         salt, iv, ciphertext = data[:16], data[16:32], data[32:]
-        key = self.derive_key(password, salt)
+
+        # Derive the key
+        key = self.derive_key(password.encode('utf-8'), salt)
+
+        # Set up the cipher to decrypt
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
         decryptor = cipher.decryptor()
-        padded_vote = decryptor.update(ciphertext) + decryptor.finalize()
-        return padded_vote.rstrip(b"\0")
 
-# Exemplo de uso
+        # Decrypt and remove padding
+        padded_key = decryptor.update(ciphertext) + decryptor.finalize()
+        return padded_key.rstrip(b"\0")
+
+"""
 if __name__ == "__main__":
-    db = Database()
-    
-    members = db.get_commission_members(1, 1).unwrap()
+# Chave secreta para integridade dos votos
+    integrity_key = b'supersecretintegritykey'
 
-    keys_parts = []
-    print("Membros:")
+    # Instancia o sistema de votação
+    voting_system = VotingSystem(integrity_key)
 
-    for i, member in enumerate(members):
-        key = member[2]
-        file = open("keys/private_key_user" + str(i + 2) + ".pem", 'r')
-        private_key = file.read()
-        file.close()
-        key, prime = decrypt_message(private_key, key).split('|DIV|')
-        x, y = key.strip('(').strip(')').strip(' ').split(',')
-        keys_parts.append((int(x), int(y)))
-    
-    shamir = Shamir(keys_parts, int(prime))
-    vote = "option_1"
+    # Voto a ser registrado
+    vote = 'Alice'
 
-    segredo: str = shamir.secret
+    # Gera o HMAC para o voto
+    generated_hmac = voting_system.generate_hmac(vote)
+    print(f'HMAC gerado para o voto "{vote}": {generated_hmac}')
 
-    voting_system = VotingSystem(db)
-    
-    # Gerar e verificar HMAC
+    # Simula verificação do voto
+    is_valid = voting_system.verify_hmac(vote, integrity_key, generated_hmac)
+    print(f'O voto "{vote}" é válido? {is_valid}')
 
-    encripted_vote = voting_system.encrypt_vote(vote)
-   
-    hmac_result = voting_system.generate_hmac(vote)
-    print("Voto HMAC-SHA512:", hmac_result)
+    # Teste com HMAC alterado (para simular um voto modificado ou inválido)
+    altered_hmac = '0000000000000000000000000000000000000000000000000000000000000000'
+    is_valid_altered = voting_system.verify_hmac(vote, integrity_key, altered_hmac)
+    print(f'O voto "{vote}" com HMAC alterado é válido? {is_valid_altered}')
+"""
+"""
+if __name__ == "__main__":
+    voting_system = VotingSystem(b'secret_key')
+    vote = "example_vote"
+    generated_hmac = voting_system.generate_hmac(vote)
+    print(f"Generated HMAC: {generated_hmac}")
 
-    desencripted_vote = voting_system.decrypt_vote(encripted_vote)
-    print("Voto desencriptado:", desencripted_vote)
-   
-    is_valid = voting_system.verify_hmac(vote, hmac_result)
-    print("Verificação HMAC:", "Válido" if is_valid else "Inválido")
+    # Verificação
+    message = vote.encode('utf-8')
+    is_valid = voting_system.verify_hmac(message, generated_hmac, b'secret_key')
+    print(f"Is the HMAC valid? {is_valid}")
 
-    encripted_key = voting_system.encrypt_key(shamir.secret.encode())
-    print("Chave encriptada: ", encripted_key)
-
-    new_voting_system = VotingSystem(db)
-    descripted_key = new_voting_system.decrypt_key(encripted_key, shamir.secret.encode())
-    print("Chave desencriptada: ", descripted_key)
-    print("Chave desencriptada é válida: ", descripted_key == voting_system.integrity_key)
-
-
- 
+"""

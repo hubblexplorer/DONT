@@ -11,6 +11,7 @@ import time
 import threading
 import os
 import sys
+import base64
 
 # Adicionar o diretório pai ao caminho de pesquisa de módulos do Python
 current_dir = os.path.dirname(__file__)
@@ -86,10 +87,13 @@ class ShamirInterface(tk.Toplevel):
                     self.close_voting()
                 elif self.action == "Verificar Resultados":
                     self.verify_results()
-                elif self.action == "":
-                    return self.segredo
+                elif self.action == "Votar":
+                    self.open_voting_app()
             else:
                 messagebox.showerror("Erro", "Falha na verificação das chaves. Tente novamente.")
+    
+    def open_voting_app(self):
+        return True
 
     def verify_keys(self):
         # Verificar as chaves usando Shamir's Secret Sharing
@@ -172,13 +176,14 @@ class ShamirInterface(tk.Toplevel):
 
 
     def count_votes(self, current_user, Id_election):
+        voting_system = VotingSystem(self.api_instance)
+
         """Conta os votos válidos para cada partido e ordena por ordem de mais votos."""
         result = self.api_instance.get_votes(current_user, Id_election)
         if result.is_err():
             print("Erro ao obter votos:", result.message)
         else:
             votes = result.unwrap()
-            
             # Dicionario para contar os votos por partido
             vote_counts = {}
 
@@ -186,19 +191,24 @@ class ShamirInterface(tk.Toplevel):
                 partido = vote_record[0]  # O valor do voto representa o partido
                 provided_hmac = vote_record[1]  # O HMAC fornecido
                 key_str = vote_record[2]  # A chave de integridade armazenada
-                
                 try:
-                    key = bytes.fromhex(key_str)  # Converte a chave de integridade de hexadecimal para bytes
+                    key = voting_system.decrypt_key(key_str, self.segredo)  # Decrypt key should take the base64 encoded string
+                    print("CHAVE DECIFARDA: ",key)
                 except ValueError as e:
                     print(f"Erro ao converter chave de integridade para bytes: {e}")
                     continue  # Pula este registro de voto
 
-                # Cria uma instancia temporaia do sistema de votacao com a chave correta
-                temp_voting_system = VotingSystem()
-                temp_voting_system.integrity_key = key
+                partido = voting_system.decrypt_vote(partido, key)
+                print("PARTIDO: ",partido)
 
+                # Ensure partido is bytes for HMAC verification
+                partido_bytes = partido.encode()
+
+                type(provided_hmac)
                 # Verifica a integridade do voto
-                if temp_voting_system.verify_hmac(partido, provided_hmac):
+                if voting_system.verify_hmac(partido,key,str(provided_hmac)):
+                    #partido = partido.decode('utf-8')
+                    # Decode partido back to string for counting
                     if partido in vote_counts:
                         vote_counts[partido] += 1
                     else:

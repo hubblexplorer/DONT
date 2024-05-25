@@ -18,17 +18,18 @@ while queue:
 
 
 # Importações dos módulos necessários
+from interface.admin_dashboard import AdminDashboard
 from interface.autenticacao import SignatureAuthenticationApp
 from api.api_db import Database as api
-from interface.users import UserInterface, AdminInterface
 from sistema.voting_system import VotingSystem
 from interface.VotingApp import VotingApp
 
 
 
 class VotingSystemApp(tk.Tk):
-    def __init__(self):
+    def __init__(self, shamir=None):
         super().__init__()
+        self.shamir = shamir
         self.title("Sistema de Votação Eletrónica")
         self.geometry("600x400")
 
@@ -38,7 +39,7 @@ class VotingSystemApp(tk.Tk):
         self.auth_button = tk.Button(self, text="Autenticar", command=self.authenticate_user, font=("Helvetica", 14))
         self.auth_button.pack(pady=20)
 
-        self.authenticated = False  # Flag para verificar se o usuário está autenticado
+        self.authenticated = False  # Flag para verificar se o utilizador está autenticado
         self.db = api()
 
     def authenticate_user(self):
@@ -52,7 +53,6 @@ class VotingSystemApp(tk.Tk):
         self.wait_window(auth_window)
         
         if auth_app.result:
-            print(auth_app.nome_utilizador)
             self.authenticated = True
             # Fecha completamente a janela principal após a autenticação bem-sucedida
             self.withdraw() #Para esconder a janela principal sem fechar
@@ -67,35 +67,39 @@ class VotingSystemApp(tk.Tk):
             if self.auth_button.winfo_exists():  # Verifica se o botão ainda existe antes de escondê-lo
                 self.auth_button.pack_forget()  # Esconde o botão de autenticação após o login bem-sucedido
 
-            api_instance = api()
-            self.user_id = api_instance.get_id("users", "name", user).value
-            user_role = api_instance.get_role(self.user_id).value
+            self.user_id = self.db.get_id("users", "name", user).value
+            user_role = self.db.get_role(self.user_id).value
 
 
             if user_role == "ADMIN":
                 self.show_admin_interface()
             elif user_role == "USER":
-                UserInterface(self, self.user_id)
+                self.show_user_interface()
             else:
                 self.show_voter_interface()
 
-    def show_admin_interface(self):
-        admin_dashboard = AdminDashboard()
-        admin_dashboard.start_admin_dashboard()
+    def show_admin_interface(self): 
+        admin_dashboard = AdminDashboard(self,self.user_id)
+        admin_dashboard.grab_set()
 
     def show_user_interface(self):
-        user_interface = UserInterface(self)
+        from interface.users import UserInterface
+        user_interface = UserInterface(self, self.user_id)
         user_interface.grab_set()
 
     def show_voter_interface(self):
+        ele_global = self.db.get_elections_global().unwrap()
+        election_id = ele_global[0][0]
+        election_name = ele_global[0][1]
+        candidates = self.db.get_candidates_by_election(election_id).unwrap()
+        print(candidates)
         voting_window = tk.Toplevel(self)
-        app = VotingApp(voting_window)
+        app = VotingApp(voting_window,candidates,election_name)
         self.wait_window(voting_window)
         vote = app.get_vote()
-        election_id = self.db.get_elections_global()
-        print("Eleição: ",election_id)
         system = VotingSystem(self.db)
-        system.store_vote(self.user_id,1,vote,"")
+        print(self.user_id,election_id,vote,self.shamir)
+        system.store_vote(self.user_id,election_id,str(vote),self.shamir)
 
 if __name__ == "__main__":
     app = VotingSystemApp()
